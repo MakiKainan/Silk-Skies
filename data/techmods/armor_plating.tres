@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="TechmodData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/techmod_data.gd" id="1_item"]
+[ext_resource type="Script" path="res://scripts/data/stat_mod.gd" id="2_mod"]
+[ext_resource type="Resource" path="res://data/roll_pools/techmod_pool.tres" id="3_pool"]
+
+[sub_resource type="Resource" id="M1"]
+script = ExtResource("2_mod")
+stat = &"armor"
+op = 0
+value = 2
+scope = 2
+
+[sub_resource type="Resource" id="M2"]
+script = ExtResource("2_mod")
+stat = &"max_hull"
+op = 0
+value = 50
+scope = 2
+
+[sub_resource type="Resource" id="M3"]
+script = ExtResource("2_mod")
+stat = &"mass"
+op = 0
+value = 20
+scope = 2
+
+[resource]
+script = ExtResource("1_item")
+id = &"armor_plating"
+display_name = "Armor Plating"
+description = "Heavy plates: tougher, but the extra mass slows the ship."
+roll_pool = ExtResource("3_pool")
+base_mods = Array[ExtResource("2_mod")]([SubResource("M1"), SubResource("M2"), SubResource("M3")])

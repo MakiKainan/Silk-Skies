@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="TechmodData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/techmod_data.gd" id="1_item"]
+[ext_resource type="Script" path="res://scripts/data/stat_mod.gd" id="2_mod"]
+[ext_resource type="Resource" path="res://data/roll_pools/techmod_pool.tres" id="3_pool"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"emp_emitter"
+display_name = "EMP Emitter"
+description = "Grants an active that briefly disables enemy auto-weapons."
+roll_pool = ExtResource("3_pool")
+base_mods = Array[ExtResource("2_mod")]([])
+active_name = "EMP Pulse"
+active_description = "Briefly disables all enemy auto-weapons in range. (Not yet active in combat.)"

@@ -26,6 +26,16 @@ extends Resource
 @export var burn_impulse: float = 22.0
 @export var burn_cooldown: float = 3.0
 
+@export_group("Health")
+@export var max_hull: float = 300.0
+@export var max_shield: float = 100.0
+## Shield points per second, once regeneration has started.
+@export var shield_regen: float = 8.0
+## Seconds without taking a hit before the shield starts to regenerate.
+@export var shield_delay: float = 3.0
+## Flat damage removed from every hit that gets past the shield.
+@export var armor: float = 3.0
+
 @export_group("Hardpoints")
 @export var hardpoints: Array[HardpointData] = []
 
@@ -41,4 +51,9 @@ func base_stats() -> Dictionary:
 		Stats.LATERAL_GRIP: lateral_grip,
 		Stats.BURN_IMPULSE: burn_impulse,
 		Stats.BURN_COOLDOWN: burn_cooldown,
+		Stats.MAX_HULL: max_hull,
+		Stats.MAX_SHIELD: max_shield,
+		Stats.SHIELD_REGEN: shield_regen,
+		Stats.SHIELD_DELAY: shield_delay,
+		Stats.ARMOR: armor,
 	}

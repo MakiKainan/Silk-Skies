@@ -3,6 +3,9 @@
 [ext_resource type="Script" path="res://scripts/ship/ship.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/ship/stats_component.gd" id="2"]
 [ext_resource type="Script" path="res://scripts/ship/movement_component.gd" id="3"]
+[ext_resource type="Script" path="res://scripts/ship/health_component.gd" id="4"]
+[ext_resource type="Script" path="res://scripts/ui/health_bar.gd" id="5"]
+[ext_resource type="Script" path="res://scripts/ship/hit_flash.gd" id="6"]
 
 [node name="Ship" type="CharacterBody3D"]
 collision_mask = 3
@@ -19,3 +22,12 @@ script = ExtResource("2")
 
 [node name="MovementComponent" type="Node" parent="."]
 script = ExtResource("3")
+
+[node name="HealthComponent" type="Node" parent="."]
+script = ExtResource("4")
+
+[node name="HitFlash" type="MeshInstance3D" parent="."]
+script = ExtResource("6")
+
+[node name="HealthBar" type="Node3D" parent="."]
+script = ExtResource("5")

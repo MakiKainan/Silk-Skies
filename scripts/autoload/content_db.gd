@@ -35,6 +35,29 @@ func get_hull(id: StringName) -> HullData:
 	return get_by_id(id) as HullData
 
 
+## Every item definition (weapons, techmods, fighter bays, crew), sorted by category then id.
+func items() -> Array[ItemData]:
+	var out: Array[ItemData] = []
+	for res: Resource in _by_id.values():
+		if res is ItemData:
+			out.append(res)
+	out.sort_custom(func(a: ItemData, b: ItemData) -> bool:
+		if a.slot_type() != b.slot_type():
+			return a.slot_type() < b.slot_type()
+		return String(a.id) < String(b.id))
+	return out
+
+
+## All weapons, sorted by id.
+func weapons() -> Array[WeaponData]:
+	var out: Array[WeaponData] = []
+	for res: Resource in _by_id.values():
+		if res is WeaponData:
+			out.append(res)
+	out.sort_custom(func(a: WeaponData, b: WeaponData) -> bool: return String(a.id) < String(b.id))
+	return out
+
+
 ## All hulls, sorted by id so indexes are stable between runs.
 func hulls() -> Array[HullData]:
 	var out: Array[HullData] = []

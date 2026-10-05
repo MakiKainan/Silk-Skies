@@ -1,7 +1,8 @@
 class_name PlayerInput
 extends Node
 ## Controller: turns keyboard + mouse into Ship commands. Add as a child of the Ship.
-## W/S throttle, A/D steer, Shift Hard Burn (the held keys pick its direction), mouse aims.
+## W/S throttle, A/D steer, Shift Hard Burn (the held keys pick its direction), mouse aims,
+## left mouse holds the manual trigger, right mouse holds the lock-on trigger.
 
 var _ship: Ship
 
@@ -18,6 +19,10 @@ func _physics_process(_delta: float) -> void:
 	_ship.set_turn(steer)
 	if Input.is_action_just_pressed(&"hard_burn"):
 		_ship.request_hard_burn(Vector2(steer, drive))
+
+	var over_ui := get_viewport().gui_get_hovered_control() != null
+	_ship.set_trigger(WeaponData.Targeting.MANUAL, Input.is_action_pressed(&"fire_manual") and not over_ui)
+	_ship.set_trigger(WeaponData.Targeting.LOCK_ON, Input.is_action_pressed(&"fire_lock") and not over_ui)
 
 	var camera := get_viewport().get_camera_3d()
 	if camera != null:

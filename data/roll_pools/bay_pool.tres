@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="RollPool" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/roll_pool.gd" id="1_pool"]
+[ext_resource type="Script" path="res://scripts/data/roll_template.gd" id="2_tpl"]
+
+[sub_resource type="Resource" id="T1"]
+script = ExtResource("2_tpl")
+stat = &"max_hull"
+op = 0
+scope = 2
+min_value = 10
+max_value = 30
+
+[sub_resource type="Resource" id="T2"]
+script = ExtResource("2_tpl")
+stat = &"max_shield"
+op = 0
+scope = 2
+min_value = 8
+max_value = 20
+
+[sub_resource type="Resource" id="T3"]
+script = ExtResource("2_tpl")
+stat = &"armor"
+op = 0
+scope = 2
+min_value = 0.5
+max_value = 1.5
+
+[resource]
+script = ExtResource("1_pool")
+id = &"bay_pool"
+templates = Array[ExtResource("2_tpl")]([SubResource("T1"), SubResource("T2"), SubResource("T3")])

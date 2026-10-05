@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ProjectileData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/projectile_data.gd" id="1_proj"]
+
+[resource]
+script = ExtResource("1_proj")
+id = &"pulse_bolt"
+damage = 3.0
+damage_type = 0
+speed = 55.0
+lifetime = 0.9
+spread_deg = 1.0
+homing_deg_per_sec = 0.0
+pierce = 0
+blast_radius = 0.0
+radius = 0.12
+length = 1.4
+color = Color(0.3, 0.9, 1.0, 1)

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ProjectileData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/projectile_data.gd" id="1_proj"]
+
+[resource]
+script = ExtResource("1_proj")
+id = &"railgun_slug"
+damage = 60.0
+damage_type = 1
+speed = 130.0
+lifetime = 0.8
+spread_deg = 0.0
+homing_deg_per_sec = 0.0
+pierce = 2
+blast_radius = 0.0
+radius = 0.2
+length = 3.5
+color = Color(0.9, 0.95, 1.0, 1)

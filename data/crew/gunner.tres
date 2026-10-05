@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="CrewData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/crew_data.gd" id="1_item"]
+[ext_resource type="Script" path="res://scripts/data/stat_mod.gd" id="2_mod"]
+[ext_resource type="Resource" path="res://data/roll_pools/crew_pool.tres" id="3_pool"]
+
+[sub_resource type="Resource" id="M1"]
+script = ExtResource("2_mod")
+stat = &"fire_rate"
+op = 1
+value = 0.15
+scope = 1
+
+[resource]
+script = ExtResource("1_item")
+id = &"gunner"
+display_name = "Gunner"
+description = "A veteran at the guns."
+roll_pool = ExtResource("3_pool")
+base_mods = Array[ExtResource("2_mod")]([SubResource("M1")])
+active_name = "Overcharge"
+active_description = "Briefly boosts the fire rate of every turret. (Not yet active in combat.)"
+station_text = "Station: turret fire rate"

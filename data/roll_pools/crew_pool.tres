@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="RollPool" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/roll_pool.gd" id="1_pool"]
+[ext_resource type="Script" path="res://scripts/data/roll_template.gd" id="2_tpl"]
+
+[sub_resource type="Resource" id="T1"]
+script = ExtResource("2_tpl")
+stat = &"fire_rate"
+op = 1
+scope = 1
+min_value = 0.03
+max_value = 0.06
+
+[sub_resource type="Resource" id="T2"]
+script = ExtResource("2_tpl")
+stat = &"thrust"
+op = 1
+scope = 2
+min_value = 0.04
+max_value = 0.08
+
+[sub_resource type="Resource" id="T3"]
+script = ExtResource("2_tpl")
+stat = &"turn_rate"
+op = 1
+scope = 2
+min_value = 0.05
+max_value = 0.10
+
+[sub_resource type="Resource" id="T4"]
+script = ExtResource("2_tpl")
+stat = &"shield_regen"
+op = 0
+scope = 2
+min_value = 1
+max_value = 2
+
+[resource]
+script = ExtResource("1_pool")
+id = &"crew_pool"
+templates = Array[ExtResource("2_tpl")]([SubResource("T1"), SubResource("T2"), SubResource("T3"), SubResource("T4")])

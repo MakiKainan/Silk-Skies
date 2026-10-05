@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="HullData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/hull_data.gd" id="1_hull"]
+[ext_resource type="PackedScene" path="res://scenes/ship/models/dummy_model.tscn" id="3_model"]
+
+[resource]
+script = ExtResource("1_hull")
+id = &"debug_dummy"
+display_name = "Target Dummy"
+model_scene = ExtResource("3_model")
+collision_radius = 1.9
+max_hull = 200.0
+max_shield = 150.0
+shield_regen = 10.0
+shield_delay = 3.0
+armor = 4.0

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="FighterBayData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/fighter_bay_data.gd" id="1_item"]
+[ext_resource type="Script" path="res://scripts/data/stat_mod.gd" id="2_mod"]
+[ext_resource type="Resource" path="res://data/roll_pools/bay_pool.tres" id="3_pool"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"interceptor_bay"
+display_name = "Interceptor Bay"
+description = "Launches fighters that shoot down incoming missiles. (Fighters are not yet active in combat.)"
+roll_pool = ExtResource("3_pool")
+base_mods = Array[ExtResource("2_mod")]([])
+fighter_name = "Interceptor"
+fighter_count = 2
+fighter_hull = 15.0
+fighter_damage = 3.0
+fighter_lifetime = 14.0
+launch_cooldown = 14.0
+role = "Shoots down incoming missiles"

@@ -127,7 +127,7 @@ func _on_slider_changed(value: float, stat: StringName) -> void:
 
 func _on_reset() -> void:
 	if _ship != null and _ship.hull != null:
-		_ship.stats.setup(_ship.hull)
+		_ship.refresh_stats()
 		_refresh()
 
 

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ProjectileData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/projectile_data.gd" id="1_proj"]
+
+[resource]
+script = ExtResource("1_proj")
+id = &"missile"
+damage = 14.0
+damage_type = 2
+speed = 26.0
+lifetime = 4.0
+spread_deg = 10.0
+homing_deg_per_sec = 140.0
+pierce = 0
+blast_radius = 3.0
+radius = 0.28
+length = 1.1
+color = Color(1.0, 0.45, 0.15, 1)

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/weapon_data.gd" id="1_weapon"]
+[ext_resource type="Resource" path="res://data/projectiles/railgun_slug.tres" id="2_proj"]
+[ext_resource type="Resource" path="res://data/roll_pools/turret_pool.tres" id="3_pool"]
+
+[resource]
+script = ExtResource("1_weapon")
+id = &"railgun"
+display_name = "Railgun"
+description = "Hold to charge, then a piercing kinetic slug. Manually aimed. Devastating against armor."
+roll_pool = ExtResource("3_pool")
+size = 1
+targeting = 1
+projectile = ExtResource("2_proj")
+cooldown = 2.5
+shots_per_fire = 1
+burst_interval = 0.1
+charge_time = 1.0
+lock_time = 0.8
+lock_pick_radius = 6.0
+range = 70.0

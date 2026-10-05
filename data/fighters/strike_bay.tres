@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="FighterBayData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/fighter_bay_data.gd" id="1_item"]
+[ext_resource type="Script" path="res://scripts/data/stat_mod.gd" id="2_mod"]
+[ext_resource type="Resource" path="res://data/roll_pools/bay_pool.tres" id="3_pool"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"strike_bay"
+display_name = "Strike Bay"
+description = "Launches bombers that dive at the enemy hull. (Fighters are not yet active in combat.)"
+roll_pool = ExtResource("3_pool")
+base_mods = Array[ExtResource("2_mod")]([])
+fighter_name = "Bomber"
+fighter_count = 2
+fighter_hull = 30.0
+fighter_damage = 25.0
+fighter_lifetime = 10.0
+launch_cooldown = 18.0
+role = "Dives at the enemy hull"

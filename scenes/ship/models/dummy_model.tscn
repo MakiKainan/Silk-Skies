@@ -1,0 +1,16 @@
+[gd_scene format=3]
+
+[sub_resource type="StandardMaterial3D" id="Mat_hull"]
+albedo_color = Color(0.75, 0.3, 0.3, 1)
+
+[sub_resource type="CylinderMesh" id="Mesh_body"]
+material = SubResource("Mat_hull")
+top_radius = 1.8
+bottom_radius = 1.8
+height = 0.9
+radial_segments = 8
+
+[node name="DummyModel" type="Node3D"]
+
+[node name="Body" type="MeshInstance3D" parent="."]
+mesh = SubResource("Mesh_body")
