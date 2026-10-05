@@ -1,0 +1,55 @@
+[gd_resource type="Resource" script_class="HullData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/hull_data.gd" id="1_hull"]
+[ext_resource type="Script" path="res://scripts/data/hardpoint_data.gd" id="2_hp"]
+[ext_resource type="PackedScene" path="res://scenes/ship/models/barge_model.tscn" id="3_model"]
+
+[sub_resource type="Resource" id="HP_turret_a"]
+script = ExtResource("2_hp")
+type = 0
+size = 1
+arc_deg = 90.0
+arc_center_deg = -90.0
+marker_name = &"Turret_A"
+
+[sub_resource type="Resource" id="HP_turret_b"]
+script = ExtResource("2_hp")
+type = 0
+size = 1
+arc_deg = 90.0
+arc_center_deg = 90.0
+marker_name = &"Turret_B"
+
+[sub_resource type="Resource" id="HP_turret_c"]
+script = ExtResource("2_hp")
+type = 0
+size = 0
+arc_deg = 360.0
+arc_center_deg = 0.0
+marker_name = &"Turret_C"
+
+[sub_resource type="Resource" id="HP_bay"]
+script = ExtResource("2_hp")
+type = 1
+marker_name = &"Bay"
+
+[sub_resource type="Resource" id="HP_crew"]
+script = ExtResource("2_hp")
+type = 3
+marker_name = &"Crew"
+
+[resource]
+script = ExtResource("1_hull")
+id = &"debug_barge"
+display_name = "Debug Barge (heavy, wide turns)"
+model_scene = ExtResource("3_model")
+collision_radius = 2.5
+mass = 250.0
+thrust = 1400.0
+max_speed = 12.0
+turn_rate = 70.0
+drag = 0.3
+lateral_grip = 0.8
+burn_impulse = 14.0
+burn_cooldown = 5.0
+hardpoints = Array[ExtResource("2_hp")]([SubResource("HP_turret_a"), SubResource("HP_turret_b"), SubResource("HP_turret_c"), SubResource("HP_bay"), SubResource("HP_crew")])

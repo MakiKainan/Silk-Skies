@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="HullData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/hull_data.gd" id="1_hull"]
+[ext_resource type="Script" path="res://scripts/data/hardpoint_data.gd" id="2_hp"]
+[ext_resource type="PackedScene" path="res://scenes/ship/models/skiff_model.tscn" id="3_model"]
+
+[sub_resource type="Resource" id="HP_turret_a"]
+script = ExtResource("2_hp")
+type = 0
+size = 0
+arc_deg = 360.0
+arc_center_deg = 0.0
+marker_name = &"Turret_A"
+
+[sub_resource type="Resource" id="HP_techmod"]
+script = ExtResource("2_hp")
+type = 2
+marker_name = &"Techmod"
+
+[resource]
+script = ExtResource("1_hull")
+id = &"debug_skiff"
+display_name = "Debug Skiff (light, nimble)"
+model_scene = ExtResource("3_model")
+collision_radius = 1.1
+mass = 50.0
+thrust = 800.0
+max_speed = 24.0
+turn_rate = 170.0
+drag = 0.45
+lateral_grip = 3.5
+burn_impulse = 26.0
+burn_cooldown = 2.0
+hardpoints = Array[ExtResource("2_hp")]([SubResource("HP_turret_a"), SubResource("HP_techmod")])
