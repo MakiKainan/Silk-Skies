@@ -68,6 +68,7 @@ func _ready() -> void:
 	spawn_row.add_child(_button("Spawn dummy", func() -> void: _sandbox.spawn_dummy()))
 	spawn_row.add_child(_button("Spawn bot", func() -> void: _sandbox.spawn_bot()))
 	spawn_row.add_child(_button("Clear", func() -> void: _sandbox.clear_enemies()))
+	spawn_row.add_child(_button("Main menu", func() -> void: _sandbox.back_to_menu()))
 
 	box.add_child(_toggle("God mode (player)", func(on: bool) -> void: _sandbox.set_god_mode(on)))
 	box.add_child(_toggle("Bots fire", func(on: bool) -> void: _sandbox.set_bots_fire(on), true))

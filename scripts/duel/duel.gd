@@ -1,12 +1,14 @@
 class_name Duel
 extends Node3D
-## One 1v1 duel from RunState: enemy preview -> fight -> result. The player's gear comes from
-## RunState.loadout, the enemy from the current encounter of RunState.act. Pauses the game
-## behind the preview and result overlays.
+## One 1v1 duel from RunState: enemy preview -> fight -> (salvage, after a win that isn't the last)
+## -> result. The player's gear comes from RunState.loadout, the enemy from the current encounter
+## of RunState.act. Pauses the game behind the preview, salvage and result overlays. In Original
+## mode the HUD is compact, there is an action bar, and a defeat ends the run.
 
 enum State { PREVIEW, FIGHTING, RESULT }
 
 const SANDBOX_SCENE := "res://scenes/debug/sandbox.tscn"
+const MENU_SCENE := "res://scenes/menu/start_screen.tscn"
 const SHIP_SCENE := preload("res://scenes/ship/ship.tscn")
 const DEFAULT_ACT_ID := &"slice_act"
 ## Ships start this far from the arena centre, facing each other.
@@ -26,6 +28,8 @@ var _damage_dealt: float = 0.0
 var _damage_taken: float = 0.0
 var _ui: DuelUI
 var _hud: Hud
+var _action_bar: ActionBar
+var _reward: RewardScreen
 var _inventory: InventoryScreen
 var _overlay_up: bool = true
 
@@ -65,10 +69,17 @@ func _ready() -> void:
 	_camera_rig.target = player
 	_camera_rig.snap_to_target()
 
+	var original := RunState.is_original()
 	_hud = Hud.new()
+	_hud.compact = original
 	add_child(_hud)
 	_hud.track(player)
-	_hud.set_help("W/S thrust   A/D steer   Shift = Hard Burn (hold W/A/S/D to aim it)\nmouse aims   LMB manual weapons   RMB hold on enemy = lock, release = fire\nI refit")
+	if original:
+		_action_bar = ActionBar.new()
+		add_child(_action_bar)
+		_action_bar.track(player)
+	else:
+		_hud.set_help("W/S thrust   A/D steer   Shift = Hard Burn (hold W/A/S/D to aim it)\nmouse aims   LMB manual weapons   RMB hold on enemy = lock, release = fire\nI refit")
 
 	_inventory = InventoryScreen.new()
 	add_child(_inventory)
@@ -82,7 +93,12 @@ func _ready() -> void:
 	_ui.refit_pressed.connect(func() -> void: _inventory.open())
 	_ui.next_pressed.connect(_next_duel)
 	_ui.retry_pressed.connect(_retry)
-	_ui.menu_pressed.connect(_back_to_sandbox)
+	_ui.menu_pressed.connect(_leave)
+	_ui.new_run_pressed.connect(_new_run)
+
+	_reward = RewardScreen.new()
+	add_child(_reward)
+	_reward.refit_pressed.connect(func() -> void: _inventory.open())
 
 	EventBus.ship_hit.connect(_on_ship_hit)
 	EventBus.phase_started.connect(_on_phase_started)
@@ -132,9 +148,25 @@ func _finish(won: bool) -> void:
 	RunState.last_result = result
 	# Let the explosion play out before the result covers the screen.
 	await get_tree().create_timer(RESULT_DELAY).timeout
+	if won and RunState.has_next():
+		await _offer_salvage()
 	var complete := won and not RunState.has_next()
-	_ui.show_result(result, RunState.has_next(), complete)
+	_ui.show_result(result, RunState.has_next(), complete, RunState.is_original())
 	_pause_for_overlay()
+
+
+## Shows the pick-one-of-three screen for the enemy just beaten and waits for the choice.
+func _offer_salvage() -> void:
+	var offers := LootGenerator.offers(enemy_data, ContentDB.items(), RunState.duel_index, RunState.make_rng(RunState.REWARD_SALT))
+	if offers.is_empty():
+		return
+	if _action_bar != null:
+		_action_bar.visible = false  # The salvage cards use that part of the screen.
+	_reward.show_offers(offers, RunState.loadout)
+	_pause_for_overlay()
+	await _reward.finished
+	if _action_bar != null:
+		_action_bar.visible = true
 
 
 func _on_ship_hit(ship: Node, hit_result: DamageResult) -> void:
@@ -166,9 +198,17 @@ func _retry() -> void:
 	get_tree().reload_current_scene()
 
 
-func _back_to_sandbox() -> void:
+## Starts a brand-new run from the first duel (after a defeat or a finished gauntlet in Original mode).
+func _new_run() -> void:
+	RunState.new_run(RunState.act)
 	get_tree().paused = false
-	get_tree().change_scene_to_file(SANDBOX_SCENE)
+	get_tree().reload_current_scene()
+
+
+## Back to the start screen from a real run, or to the sandbox from the debug gauntlet.
+func _leave() -> void:
+	get_tree().paused = false
+	get_tree().change_scene_to_file(MENU_SCENE if RunState.is_original() else SANDBOX_SCENE)
 
 
 func _pause_for_overlay() -> void:

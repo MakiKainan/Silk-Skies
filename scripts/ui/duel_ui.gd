@@ -9,6 +9,7 @@ signal refit_pressed
 signal next_pressed
 signal retry_pressed
 signal menu_pressed
+signal new_run_pressed
 
 const MODE_NAMES := ["auto", "manual", "lock-on"]
 
@@ -109,11 +110,15 @@ func hide_preview() -> void:
 # --- Result --------------------------------------------------------------------------
 
 ## [param next_available]: another duel follows. [param act_complete]: this was the last one.
-func show_result(result: DuelResult, next_available: bool, act_complete: bool) -> void:
+## [param original]: a real run, where a defeat ends the run ("RUN OVER": New run / Main menu)
+## instead of offering a retry, and the way out is the main menu rather than the sandbox.
+func show_result(result: DuelResult, next_available: bool, act_complete: bool, original: bool = false) -> void:
 	hide_result()
 	_result = _overlay()
 	var box := _panel_box(_result, 460.0)
-	var title := _label("VICTORY" if result.won else "DEFEAT", Color(0.4, 1.0, 0.5) if result.won else Color(1.0, 0.4, 0.35), 34)
+	var run_over := original and not result.won
+	var headline := "VICTORY" if result.won else ("RUN OVER" if run_over else "DEFEAT")
+	var title := _label(headline, Color(0.4, 1.0, 0.5) if result.won else Color(1.0, 0.4, 0.35), 34)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 	if act_complete:
@@ -131,16 +136,19 @@ func show_result(result: DuelResult, next_available: bool, act_complete: bool) -
 	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
 	buttons.add_theme_constant_override(&"separation", 12)
 	box.add_child(buttons)
-	buttons.add_child(_button("Refit  (I)", func() -> void: refit_pressed.emit()))
 	var primary: Button
-	if result.won and next_available:
-		primary = _button("Next duel", func() -> void: next_pressed.emit())
-	elif result.won:
-		primary = _button("Restart gauntlet", func() -> void: retry_pressed.emit())
+	if run_over or (original and not next_available):
+		primary = _button("New run", func() -> void: new_run_pressed.emit())
 	else:
-		primary = _button("Retry", func() -> void: retry_pressed.emit())
+		buttons.add_child(_button("Refit  (I)", func() -> void: refit_pressed.emit()))
+		if result.won and next_available:
+			primary = _button("Next duel", func() -> void: next_pressed.emit())
+		elif result.won:
+			primary = _button("Restart gauntlet", func() -> void: retry_pressed.emit())
+		else:
+			primary = _button("Retry", func() -> void: retry_pressed.emit())
 	buttons.add_child(primary)
-	buttons.add_child(_button("Sandbox", func() -> void: menu_pressed.emit()))
+	buttons.add_child(_button("Main menu" if original else "Sandbox", func() -> void: menu_pressed.emit()))
 	primary.grab_focus.call_deferred()
 
 

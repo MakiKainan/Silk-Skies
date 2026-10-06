@@ -1,5 +1,5 @@
 extends Node3D
-## Debug sandbox (the project's main scene for now): one player ship in the arena, with
+## Debug sandbox (the start screen's Debug option): one player ship in the arena, with
 ## target dummies and bots to shoot at on demand.
 ##
 ## 1..9 swap the player's hull   B spawn a bot   N spawn a dummy   X clear enemies
@@ -17,6 +17,7 @@ const DUMMY_HULL_ID := &"debug_dummy"
 ## The sandbox hold is roomier than a run's (ShipLoadout.RUN_CARGO_SLOTS) so you can stock up.
 const SANDBOX_CARGO_SLOTS := 12
 const DUEL_SCENE := "res://scenes/duel/duel.tscn"
+const MENU_SCENE := "res://scenes/menu/start_screen.tscn"
 const DEFAULT_ACT_ID := &"slice_act"
 
 var hulls: Array[HullData] = []  # Hulls a ship can sail; the dummy hull is not one of them.
@@ -181,6 +182,11 @@ func spawn_enemy(enemy: EnemyData) -> void:
 func start_gauntlet() -> void:
 	RunState.start_act(ContentDB.get_by_id(DEFAULT_ACT_ID) as ActData)
 	get_tree().change_scene_to_file(DUEL_SCENE)
+
+
+## Back to the start screen. The run's gear is dropped when a new mode is picked there.
+func back_to_menu() -> void:
+	get_tree().change_scene_to_file(MENU_SCENE)
 
 
 func open_inventory() -> void:

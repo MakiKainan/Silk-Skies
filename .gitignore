@@ -1,3 +1,23 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
+
+# Non-production: tests, test framework, docs, design notes
+/tests/
+/addons/gut/
+/.gutconfig.json
+/docs/
+/2026-*-design.md
+
+# Local tooling / editor
+.claude/
+.vscode/
+.idea/
+*.tmp
+
+# Build output
+*.exe
+*.pck
+*.console.exe
+/export/
+/builds/

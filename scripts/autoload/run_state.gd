@@ -4,8 +4,18 @@ extends Node
 ## carries between them. (Hull damage carry-over, scrap and the seed-saved run arrive with the
 ## full loop in M4.)
 
+## Original is the real run (reward loop, compact HUD, action bar); Debug is the sandbox and the
+## debug gauntlet.
+enum Mode { ORIGINAL, DEBUG }
+
+## Salt for the post-duel reward offers, so they are seeded per duel like everything else.
+const REWARD_SALT := 7
+## Cargo cells in the roomy debug hold. A real run uses ShipLoadout.RUN_CARGO_SLOTS.
+const DEBUG_CARGO_SLOTS := 12
+
+var mode: Mode = Mode.DEBUG
 ## Cargo cells for a new loadout. The sandbox is roomier than a real run (4).
-var cargo_capacity: int = 12
+var cargo_capacity: int = DEBUG_CARGO_SLOTS
 
 var player_hull: HullData
 var loadout: ShipLoadout
@@ -27,13 +37,33 @@ func ensure_player() -> bool:
 	return true
 
 
-## Forgets the player's gear (a fresh run, or tests).
+## Forgets the player's gear and goes back to debug defaults (a fresh run, or tests).
 func reset() -> void:
+	mode = Mode.DEBUG
+	cargo_capacity = DEBUG_CARGO_SLOTS
 	player_hull = null
 	loadout = null
 	act = null
 	duel_index = 0
 	last_result = null
+
+
+## Starts a real run: fresh starter gear in a 4-cell hold, fighting through [param new_act].
+func new_run(new_act: ActData) -> void:
+	reset()
+	mode = Mode.ORIGINAL
+	cargo_capacity = ShipLoadout.RUN_CARGO_SLOTS
+	ensure_player()
+	start_act(new_act)
+
+
+## Switches to debug mode with a fresh, roomy loadout (gear from an earlier run is dropped).
+func start_debug() -> void:
+	reset()
+
+
+func is_original() -> bool:
+	return mode == Mode.ORIGINAL
 
 
 func start_act(new_act: ActData) -> void:

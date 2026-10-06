@@ -1,13 +1,18 @@
 class_name Hud
 extends CanvasLayer
-## Sandbox HUD: the tracked ship's sailing readout, shield/hull/armor, and one status line
-## per weapon (mode, cooldown / charge / lock bar).
+## The tracked ship's HUD. Full (sandbox, debug gauntlet): sailing readout, shield/hull/armor, and
+## one status line per weapon (mode, cooldown / charge / lock bar). Compact (a real run): only
+## the hull name and the shield/hull bars; weapon cooldowns live on the ActionBar instead.
 
 const MODE_NAMES := {
 	WeaponData.Targeting.AUTO: "auto",
 	WeaponData.Targeting.MANUAL: "manual LMB",
 	WeaponData.Targeting.LOCK_ON: "lock RMB",
 }
+
+## Set before adding the HUD to the tree. Compact drops the controls help, the speed and Hard Burn
+## readout and the per-weapon cooldown rows.
+var compact: bool = false
 
 var _ship: Ship
 var _box: VBoxContainer
@@ -30,8 +35,9 @@ func _ready() -> void:
 
 	_info = _make_label()
 	_box.add_child(_info)
-	_burn_bar = _make_bar(Color(0.9, 0.8, 0.3), 14.0)
-	_box.add_child(_bar_row(UiArt.status_icon("burn"), Color(0.9, 0.8, 0.3), _burn_bar))
+	if not compact:
+		_burn_bar = _make_bar(Color(0.9, 0.8, 0.3), 14.0)
+		_box.add_child(_bar_row(UiArt.status_icon("burn"), Color(0.9, 0.8, 0.3), _burn_bar))
 
 	_health_label = _make_label()
 	_box.add_child(_health_label)
@@ -45,10 +51,10 @@ func _ready() -> void:
 	_box.add_child(_weapon_box)
 
 	_help = _make_label()
-	var help := _help
-	help.text = "\nW/S thrust   A/D steer   Shift = Hard Burn (hold W/A/S/D to aim it)\nmouse aims   LMB manual weapons   RMB hold on enemy = lock, release = fire\nI refit & inventory   1/2/3 hull   B bot   N dummy   X clear   R reset   F1 tuning   F2 sandbox\n[ ] time scale   \\ reset time   wheel zoom"
-	help.modulate = Color(1.0, 1.0, 1.0, 0.65)
-	_box.add_child(help)
+	_help.text = "\nW/S thrust   A/D steer   Shift = Hard Burn (hold W/A/S/D to aim it)\nmouse aims   LMB manual weapons   RMB hold on enemy = lock, release = fire\nI refit & inventory   1/2/3 hull   B bot   N dummy   X clear   R reset   F1 tuning   F2 sandbox\n[ ] time scale   \\ reset time   wheel zoom"
+	_help.modulate = Color(1.0, 1.0, 1.0, 0.65)
+	_help.visible = not compact
+	_box.add_child(_help)
 
 	_banner = Label.new()
 	_banner.set_anchors_preset(Control.PRESET_CENTER_TOP)
@@ -82,18 +88,20 @@ func show_banner(text: String) -> void:
 func _process(_delta: float) -> void:
 	if _ship == null or _ship.hull == null:
 		return
-	var move := _ship.movement
-	var stats := _ship.stats
-	_info.text = "%s\nspeed  %5.1f / %.0f m/s\nturn   %5.1f / %.0f deg/s\nhard burn  %s%s" % [
-		_ship.hull.display_name,
-		move.speed(),
-		stats.get_stat(Stats.MAX_SPEED),
-		move.effective_turn_rate_deg(),
-		stats.get_stat(Stats.TURN_RATE),
-		"READY" if move.burn_ready_fraction() >= 1.0 else "cooling",
-		"" if Engine.time_scale == 1.0 else "\ntime scale x%.2f" % Engine.time_scale,
-	]
-	_burn_bar.value = move.burn_ready_fraction()
+	if compact:
+		_info.text = _ship.hull.display_name
+	else:
+		var move := _ship.movement
+		_info.text = "%s\nspeed  %5.1f / %.0f m/s\nturn   %5.1f / %.0f deg/s\nhard burn  %s%s" % [
+			_ship.hull.display_name,
+			move.speed(),
+			_ship.stats.get_stat(Stats.MAX_SPEED),
+			move.effective_turn_rate_deg(),
+			_ship.stats.get_stat(Stats.TURN_RATE),
+			"READY" if move.burn_ready_fraction() >= 1.0 else "cooling",
+			"" if Engine.time_scale == 1.0 else "\ntime scale x%.2f" % Engine.time_scale,
+		]
+		_burn_bar.value = move.burn_ready_fraction()
 
 	var health := _ship.health
 	_health_label.text = "\nshield %3.0f/%.0f   hull %3.0f/%.0f   armor %.0f%s" % [
@@ -115,7 +123,7 @@ func _rebuild_weapons() -> void:
 	for child in _weapon_box.get_children():
 		child.queue_free()
 	_weapon_rows.clear()
-	if _ship == null:
+	if _ship == null or compact:
 		return
 	for controller in _ship.weapons():
 		var label := _make_label()
