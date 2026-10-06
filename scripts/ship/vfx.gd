@@ -2,6 +2,20 @@ class_name Vfx
 extends RefCounted
 ## Throwaway placeholder effects: expanding rings for blasts and ship deaths.
 
+## Drops a real effect scene at [param position]. The scene should free itself when done; a
+## timer removes it after [param max_seconds] in case it does not.
+static func spawn_scene(parent: Node, scene: PackedScene, position: Vector3, max_seconds: float = 5.0) -> void:
+	if parent == null or not parent.is_inside_tree():
+		return
+	var node := scene.instantiate() as Node3D
+	if node == null:
+		return
+	node.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	parent.add_child(node)
+	node.global_position = position
+	parent.get_tree().create_timer(max_seconds).timeout.connect(node.queue_free)
+
+
 ## An expanding, fading sphere centred on [param position]; frees itself when done.
 static func ring(parent: Node, position: Vector3, radius: float, color: Color, duration: float = 0.35) -> void:
 	var sphere := SphereMesh.new()

@@ -6,7 +6,8 @@ extends RefCounted
 ## Implemented: empty/duplicate ids, hull model scene + hardpoint markers, weapons,
 ## projectiles, and item basics (name, roll pool ranges, fighter bays).
 ## Enemies: hull + AI present, loadout slots exist and items fit them, phase thresholds fall.
-## Acts: no empty or null encounters. Added later: synergies.
+## Acts: no empty or null encounters. Art (optional, but if present): scenes load with a
+## Node3D root, icons are square 64-512 px, files live under res://assets/. Added later: synergies.
 
 static func validate(resources: Array) -> PackedStringArray:
 	var errors := PackedStringArray()
@@ -49,6 +50,8 @@ static func _check_hull(hull: HullData, errors: PackedStringArray) -> void:
 	if hull.model_scene == null:
 		errors.append("%s: hull has no model_scene" % where)
 		return
+	_check_art_path(hull.model_scene, "model_scene", where, errors, "res://scenes/ship/models/")  # Box placeholders live outside assets/.
+	_check_icon(ArtLookup.hull_icon(hull), "icon", where, errors)
 	var model := hull.model_scene.instantiate()
 	for hardpoint in hull.hardpoints:
 		if hardpoint == null:
@@ -70,6 +73,7 @@ static func _check_item(item: ItemData, errors: PackedStringArray) -> void:
 				errors.append("%s: roll template '%s' has min_value above max_value" % [where, template.stat])
 	if item is FighterBayData and (item as FighterBayData).fighter_count < 1:
 		errors.append("%s: fighter bay must launch at least 1 fighter" % where)
+	_check_icon(ArtLookup.item_icon(item), "icon", where, errors)
 
 
 static func _check_ai_profile(profile: AIProfile, errors: PackedStringArray) -> void:
@@ -148,6 +152,8 @@ static func _check_weapon(weapon: WeaponData, errors: PackedStringArray) -> void
 		errors.append("%s: lock-on weapon needs a positive lock_time" % where)
 	if weapon.targeting != WeaponData.Targeting.MANUAL and weapon.range <= 0.0:
 		errors.append("%s: auto/lock-on weapon needs a positive range" % where)
+	_check_scene(ArtLookup.barrel_scene(weapon), "barrel_scene", where, errors)
+	_check_audio(ArtLookup.fire_sound(weapon), "fire_sound", where, errors)
 
 
 static func _check_projectile(projectile: ProjectileData, errors: PackedStringArray) -> void:
@@ -158,6 +164,52 @@ static func _check_projectile(projectile: ProjectileData, errors: PackedStringAr
 		errors.append("%s: projectile lifetime must be positive" % where)
 	if projectile.damage <= 0.0:
 		errors.append("%s: projectile damage must be positive" % where)
+	_check_scene(ArtLookup.projectile_scene(projectile), "visual_scene", where, errors)
+	_check_scene(ArtLookup.impact_scene(projectile), "impact_scene", where, errors)
+	_check_audio(ArtLookup.impact_sound(projectile), "impact_sound", where, errors)
+
+
+# --- Art ---------------------------------------------------------------------------------
+# Every art field is optional (null = placeholder), but art that is present must be usable.
+
+## Real art lives under res://assets/. Inline sub-resources and unsaved resources are left alone.
+static func _check_art_path(art: Resource, field: String, where: String, errors: PackedStringArray, extra_prefix: String = "") -> void:
+	if art == null:
+		return
+	var path := art.resource_path
+	if path == "" or "::" in path:
+		return
+	if not path.begins_with(ArtLookup.ROOT_PREFIX) and (extra_prefix == "" or not path.begins_with(extra_prefix)):
+		errors.append("%s: %s '%s' is outside %s" % [where, field, path, ArtLookup.ROOT_PREFIX])
+
+
+static func _check_scene(scene: PackedScene, field: String, where: String, errors: PackedStringArray) -> void:
+	if scene == null:
+		return
+	_check_art_path(scene, field, where, errors)
+	var node := scene.instantiate()
+	if node == null:
+		errors.append("%s: %s could not be instantiated" % [where, field])
+	else:
+		if not node is Node3D:
+			errors.append("%s: %s must have a Node3D root" % [where, field])
+		node.free()
+
+
+static func _check_icon(icon: Texture2D, field: String, where: String, errors: PackedStringArray) -> void:
+	if icon == null:
+		return
+	_check_art_path(icon, field, where, errors)
+	var width := icon.get_width()
+	var height := icon.get_height()
+	if width != height:
+		errors.append("%s: %s must be square, it is %dx%d" % [where, field, width, height])
+	elif width < 64 or width > 512:
+		errors.append("%s: %s must be between 64 and 512 px, it is %d" % [where, field, width])
+
+
+static func _check_audio(stream: AudioStream, field: String, where: String, errors: PackedStringArray) -> void:
+	_check_art_path(stream, field, where, errors)
 
 
 static func _where(res: Resource) -> String:

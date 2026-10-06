@@ -297,7 +297,9 @@ func _spawn_shot(direction: Vector3, target: Ship) -> void:
 	var origin := muzzle_position() + shot_direction * 1.0
 	# A longer-ranged weapon's shots live proportionally longer so they actually reach.
 	var lifetime := data.lifetime * effective_range() / maxf(weapon.range, 0.001)
-	Projectile.spawn(_projectile_parent(), data, ship, origin, shot_direction, target, shot_damage(), projectile_speed(), lifetime)
+	var parent := _projectile_parent()
+	Sfx.play_3d(parent, ArtLookup.fire_sound(weapon), origin)
+	Projectile.spawn(parent, data, ship, origin, shot_direction, target, shot_damage(), projectile_speed(), lifetime)
 
 
 func _projectile_parent() -> Node:

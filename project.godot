@@ -30,6 +30,10 @@ gdscript/warnings/untyped_declaration=1
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
+[gui]
+
+theme/custom="res://assets/ui/theme/game_theme.tres"
+
 [input]
 
 thrust_fwd={

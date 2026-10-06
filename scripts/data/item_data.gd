@@ -13,6 +13,8 @@ extends Resource
 @export var base_mods: Array[StatMod] = []
 ## Name of the Q/E/R ability this item grants. Shown in the UI; combat support arrives later.
 @export var active_name: String = ""
+## Inventory icon (128x128 PNG). Empty = looked up as assets/icons/items/<id>.png, else the badge.
+@export var icon: Texture2D
 @export_multiline var active_description: String = ""
 
 

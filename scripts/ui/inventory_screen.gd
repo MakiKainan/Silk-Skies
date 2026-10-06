@@ -150,7 +150,7 @@ func _build() -> void:
 
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(1100.0, 610.0)
-	panel.add_theme_stylebox_override(&"panel", ItemVisuals.slot_style(Color(0.3, 0.34, 0.45), Color(0.06, 0.07, 0.1), 2))
+	panel.add_theme_stylebox_override(&"panel", ItemVisuals.panel_style())
 	center.add_child(panel)
 	var outer := VBoxContainer.new()
 	panel.add_child(outer)

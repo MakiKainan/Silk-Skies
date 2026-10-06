@@ -22,6 +22,12 @@ enum Targeting { AUTO, MANUAL, LOCK_ON }
 ## Auto and lock-on target selection distance.
 @export var range: float = 40.0
 
+@export_group("Art")
+## Turret barrel model, pointing toward -Z. Empty = assets/models/weapons/<id>_barrel, else a box.
+@export var barrel_scene: PackedScene
+## Played at the muzzle per shot. Empty = assets/audio/sfx/<id>_fire, else silent.
+@export var fire_sound: AudioStream
+
 
 func slot_size() -> HardpointData.Size:
 	return size

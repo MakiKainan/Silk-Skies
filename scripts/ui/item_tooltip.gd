@@ -10,12 +10,26 @@ static func build(item: ItemInstance) -> Control:
 	var data := item.data()
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size.x = WIDTH
-	panel.add_theme_stylebox_override(&"panel", ItemVisuals.slot_style(Rarity.color(item.rarity), Color(0.06, 0.07, 0.1), 2))
+	panel.add_theme_stylebox_override(&"panel", ItemVisuals.panel_style())
 	var box := VBoxContainer.new()
 	panel.add_child(box)
 
 	var rarity_color := Rarity.color(item.rarity)
-	box.add_child(_label(data.display_name, rarity_color, 18))
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override(&"separation", 10)
+	box.add_child(header)
+	var picture := UiArt.icon_rect(ArtLookup.item_icon(data), 56.0)
+	if picture != null:
+		header.add_child(picture)
+	var name_label := _label(data.display_name, rarity_color, 18)
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	header.add_child(name_label)
+	if data is WeaponData:
+		var type := (data as WeaponData).projectile.damage_type
+		var glyph := UiArt.icon_rect(UiArt.damage_icon(type), 26.0, Damage.TYPE_COLORS[type])
+		if glyph != null:
+			header.add_child(glyph)
 	box.add_child(_label("%s %s%s" % [Rarity.display_name(item.rarity), data.category_name(), _subtitle(data)], Color(1, 1, 1, 0.6), 13))
 	box.add_child(HSeparator.new())
 

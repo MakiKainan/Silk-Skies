@@ -14,6 +14,7 @@ var is_trash: bool = false
 var empty_tooltip: String = ""
 var empty_color: Color = Color(0.4, 0.4, 0.45)
 
+var _icon: TextureRect
 var _badge: Label
 var _tag: Label
 
@@ -29,6 +30,13 @@ func setup(p_loadout: ShipLoadout, p_kind: ShipLoadout.Kind, p_index: int, p_emp
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(box)
+	_icon = TextureRect.new()
+	_icon.custom_minimum_size = ItemVisuals.ICON_SIZE
+	_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_icon.visible = false
+	box.add_child(_icon)
 	_badge = Label.new()
 	_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_badge.add_theme_font_size_override(&"font_size", 24)
@@ -49,9 +57,13 @@ func item() -> ItemInstance:
 func refresh() -> void:
 	modulate = Color.WHITE
 	var current := item()
+	_icon.visible = false
+	_icon.modulate = Color.WHITE
+	_badge.visible = true
 	if is_trash:
 		_badge.text = "X"
 		_tag.text = "discard"
+		_show_glyph(UiArt.texture(UiArt.DISCARD), Color(1.0, 0.45, 0.4, 0.85))
 		add_theme_stylebox_override(&"panel", ItemVisuals.slot_style(Color(0.7, 0.3, 0.3), EMPTY_FILL))
 		tooltip_text = "Drop an item here to discard it"
 		return
@@ -59,16 +71,33 @@ func refresh() -> void:
 		_badge.text = ""
 		_tag.text = "empty"
 		_tag.modulate = Color(1, 1, 1, 0.4)
+		if kind == ShipLoadout.Kind.SLOT and index < loadout.hull.hardpoints.size():
+			_show_glyph(UiArt.glyph(loadout.hull.hardpoints[index].type), Color(empty_color, 0.3))
 		add_theme_stylebox_override(&"panel", ItemVisuals.slot_style(empty_color.darkened(0.35), EMPTY_FILL, 2))
 		tooltip_text = empty_tooltip
 		return
 	var data := current.data()
 	_badge.text = ItemVisuals.badge(data)
+	var icon := ArtLookup.item_icon(data)
+	if icon != null:  # Real art replaces the two-letter badge; the rarity border stays.
+		_icon.texture = icon
+		_icon.visible = true
+		_badge.visible = false
 	_tag.text = Rarity.display_name(current.rarity)
 	_tag.modulate = Rarity.color(current.rarity)
 	var category := ItemVisuals.category_color(data.slot_type())
 	add_theme_stylebox_override(&"panel", ItemVisuals.slot_style(Rarity.color(current.rarity), category.darkened(0.6)))
 	tooltip_text = data.display_name  # Any non-empty text triggers _make_custom_tooltip.
+
+
+## Faint glyph in place of the badge (empty slot, discard bin). No-op without art.
+func _show_glyph(texture: Texture2D, tint: Color) -> void:
+	if texture == null:
+		return
+	_icon.texture = texture
+	_icon.modulate = tint
+	_icon.visible = true
+	_badge.visible = false
 
 
 func _make_custom_tooltip(_for_text: String) -> Object:
@@ -84,9 +113,14 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 		return null
 	var preview := PanelContainer.new()
 	preview.add_theme_stylebox_override(&"panel", ItemVisuals.slot_style(Rarity.color(current.rarity), ItemVisuals.category_color(current.data().slot_type()).darkened(0.4)))
+	var row := HBoxContainer.new()
+	preview.add_child(row)
+	var picture := UiArt.icon_rect(ArtLookup.item_icon(current.data()), 40.0)
+	if picture != null:
+		row.add_child(picture)
 	var label := Label.new()
 	label.text = current.display_name()
-	preview.add_child(label)
+	row.add_child(label)
 	if get_viewport().gui_is_dragging():  # False only when called by hand, as the tests do.
 		set_drag_preview(preview)
 	else:

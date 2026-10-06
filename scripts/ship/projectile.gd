@@ -83,6 +83,7 @@ func _physics_process(delta: float) -> void:
 				_explode(point)
 				return
 			_damage(ship, point)
+			_impact(point)
 			if pierce_left > 0:
 				pierce_left -= 1
 				continue
@@ -92,6 +93,7 @@ func _physics_process(delta: float) -> void:
 		if data.blast_radius > 0.0:
 			_explode(point)
 		else:
+			_impact(point)
 			queue_free()
 		return
 	global_position = to
@@ -126,8 +128,19 @@ func _explode(point: Vector3) -> void:
 		var reach := data.blast_radius + (ship.hull.collision_radius if ship.hull != null else 0.0)
 		if offset.length() <= reach:
 			_damage(ship, ship.global_position)
-	Vfx.ring(get_parent(), point, data.blast_radius, data.color)
+	_impact(point)
 	queue_free()
+
+
+## Sound and effect where the shot ended. Blasts fall back to the placeholder ring.
+func _impact(point: Vector3) -> void:
+	var parent := get_parent()
+	Sfx.play_3d(parent, ArtLookup.impact_sound(data), point)
+	var scene := ArtLookup.impact_scene(data)
+	if scene != null:
+		Vfx.spawn_scene(parent, scene, point)
+	elif data.blast_radius > 0.0:
+		Vfx.ring(parent, point, data.blast_radius, data.color)
 
 
 func _face_direction() -> void:
@@ -135,6 +148,12 @@ func _face_direction() -> void:
 
 
 func _build_visual() -> void:
+	var scene := ArtLookup.projectile_scene(data)
+	if scene != null:
+		var model := scene.instantiate() as Node3D
+		if model != null:
+			add_child(model)
+			return
 	var material := StandardMaterial3D.new()
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	material.albedo_color = data.color

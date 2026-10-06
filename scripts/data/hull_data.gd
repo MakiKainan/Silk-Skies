@@ -10,6 +10,8 @@ extends Resource
 @export var collision_radius: float = 1.5
 ## False for enemy-only hulls and targets, so the sandbox hull picker skips them.
 @export var player_selectable: bool = true
+## Portrait for menus. Empty = assets/icons/hulls/<id>.png. No screen shows it yet.
+@export var icon: Texture2D
 
 @export_group("Handling")
 @export var mass: float = 100.0

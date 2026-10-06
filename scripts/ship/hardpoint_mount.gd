@@ -63,7 +63,8 @@ func aim_barrel(world_direction: Vector3, glow: float, delta: float) -> void:
 	var diff := angle_difference(_barrel_pivot.global_rotation.y, wanted_yaw)
 	var step := deg_to_rad(BARREL_TURN_DEG) * delta
 	_barrel_pivot.global_rotation.y += clampf(diff, -step, step)
-	_barrel_material.emission_energy_multiplier = glow * 5.0
+	if _barrel_material != null:  # Real barrel models bring their own look: no glow tint.
+		_barrel_material.emission_energy_multiplier = glow * 5.0
 
 
 func set_arc_visible(on: bool) -> void:
@@ -73,6 +74,17 @@ func set_arc_visible(on: bool) -> void:
 
 
 func _build_barrel(weapon: WeaponData) -> void:
+	_barrel_material = null
+	var barrel_scene := ArtLookup.barrel_scene(weapon)
+	if barrel_scene != null:
+		var model := barrel_scene.instantiate() as Node3D
+		if model != null:
+			model.position = Vector3(0.0, 0.2, 0.0)  # Authored facing -Z, origin at the pivot.
+			_barrel_pivot = Node3D.new()
+			_barrel_pivot.name = "BarrelPivot"
+			_barrel_pivot.add_child(model)
+			add_child(_barrel_pivot)
+			return
 	var large := weapon.size == HardpointData.Size.LARGE
 	var length := 1.6 if large else 1.0
 	var thickness := 0.28 if large else 0.16

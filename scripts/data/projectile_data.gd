@@ -21,3 +21,11 @@ extends Resource
 @export var radius: float = 0.15
 @export var length: float = 1.0
 @export var color: Color = Color.WHITE
+
+@export_group("Art")
+## Flying model, pointing toward -Z. Empty = assets/models/projectiles/<id>, else a generated shape.
+@export var visual_scene: PackedScene
+## Spawned where it hits; the scene frees itself. Empty = assets/vfx/scenes/<id>_impact, else a blast ring.
+@export var impact_scene: PackedScene
+## Played where it hits. Empty = assets/audio/sfx/<id>_impact, else silent.
+@export var impact_sound: AudioStream

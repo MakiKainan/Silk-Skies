@@ -2,7 +2,9 @@ class_name ItemVisuals
 extends RefCounted
 ## Placeholder look for items and slots: colour by category, two-letter badge, rarity border.
 
-const SLOT_SIZE := Vector2(72.0, 72.0)
+const SLOT_SIZE := Vector2(80.0, 80.0)
+## Icons are authored at 128x128 and drawn at this size inside a slot.
+const ICON_SIZE := Vector2(42.0, 42.0)
 
 
 static func category_color(type: HardpointData.Type) -> Color:
@@ -38,7 +40,24 @@ static func slot_caption(hardpoint: HardpointData) -> String:
 	return "%s - %s, %d deg arc" % [name, size_name, roundi(hardpoint.arc_deg)]
 
 
-static func slot_style(border: Color, fill: Color, border_width: int = 3) -> StyleBoxFlat:
+## Slot frame tinted [param border]. Uses the textured frame from assets/ui/frames when it
+## exists (then [param fill] and [param border_width] are ignored), else a flat box.
+static func slot_style(border: Color, fill: Color, border_width: int = 3) -> StyleBox:
+	var art := UiArt.slot_style(border)
+	if art != null:
+		return art
+	return flat_style(border, fill, border_width)
+
+
+## Window panel: the textured panel when it exists, else a flat box.
+static func panel_style() -> StyleBox:
+	var art := UiArt.panel_style()
+	if art != null:
+		return art
+	return flat_style(Color(0.3, 0.34, 0.45), Color(0.06, 0.07, 0.1), 2)
+
+
+static func flat_style(border: Color, fill: Color, border_width: int = 3) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = fill
 	style.set_border_width_all(border_width)

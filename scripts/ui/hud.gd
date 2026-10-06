@@ -12,9 +12,9 @@ const MODE_NAMES := {
 var _ship: Ship
 var _box: VBoxContainer
 var _info: Label
-var _burn_bar: ProgressBar
-var _shield_bar: ProgressBar
-var _hull_bar: ProgressBar
+var _burn_bar: Range
+var _shield_bar: Range
+var _hull_bar: Range
 var _health_label: Label
 var _weapon_box: VBoxContainer
 var _weapon_rows: Array[Dictionary] = []  # {controller, label, bar}
@@ -30,15 +30,15 @@ func _ready() -> void:
 
 	_info = _make_label()
 	_box.add_child(_info)
-	_burn_bar = _make_bar(Color(0.9, 0.8, 0.3), 10.0)
-	_box.add_child(_burn_bar)
+	_burn_bar = _make_bar(Color(0.9, 0.8, 0.3), 14.0)
+	_box.add_child(_bar_row(UiArt.status_icon("burn"), Color(0.9, 0.8, 0.3), _burn_bar))
 
 	_health_label = _make_label()
 	_box.add_child(_health_label)
-	_shield_bar = _make_bar(Color(0.3, 0.65, 1.0), 12.0)
-	_box.add_child(_shield_bar)
-	_hull_bar = _make_bar(Color(0.9, 0.25, 0.25), 12.0)
-	_box.add_child(_hull_bar)
+	_shield_bar = _make_bar(Color(0.3, 0.65, 1.0), 18.0)
+	_box.add_child(_bar_row(UiArt.status_icon("shield"), Color(0.3, 0.65, 1.0), _shield_bar))
+	_hull_bar = _make_bar(Color(0.9, 0.25, 0.25), 18.0)
+	_box.add_child(_bar_row(UiArt.status_icon("hull"), Color(0.9, 0.25, 0.25), _hull_bar))
 
 	_weapon_box = VBoxContainer.new()
 	_weapon_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -107,7 +107,7 @@ func _process(_delta: float) -> void:
 		var controller := row.controller as WeaponController
 		if not is_instance_valid(controller):
 			continue
-		(row.bar as ProgressBar).value = controller.ready_fraction()
+		(row.bar as Range).value = controller.ready_fraction()
 		(row.label as Label).text = "%s [%s] %s" % [controller.weapon.display_name, MODE_NAMES[controller.weapon.targeting], controller.status_text()]
 
 
@@ -119,12 +119,13 @@ func _rebuild_weapons() -> void:
 		return
 	for controller in _ship.weapons():
 		var label := _make_label()
-		var bar := _make_bar(Damage.TYPE_COLORS[controller.weapon.projectile.damage_type], 8.0)
+		var type := controller.weapon.projectile.damage_type
+		var bar := _make_bar(Damage.TYPE_COLORS[type], 12.0)
 		var spacer := Control.new()
 		spacer.custom_minimum_size.y = 2.0
 		spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_weapon_box.add_child(label)
-		_weapon_box.add_child(bar)
+		_weapon_box.add_child(_bar_row(UiArt.damage_icon(type), Damage.TYPE_COLORS[type], bar))
 		_weapon_box.add_child(spacer)
 		_weapon_rows.append({"controller": controller, "label": label, "bar": bar})
 
@@ -137,14 +138,22 @@ func _make_label() -> Label:
 	return label
 
 
-func _make_bar(color: Color, height: float) -> ProgressBar:
-	var bar := ProgressBar.new()
-	bar.custom_minimum_size = Vector2(240.0, height)
-	bar.max_value = 1.0
-	bar.show_percentage = false
-	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+## A bar made from the HUD bar art (or a flat ProgressBar when there is none), 240 px wide.
+func _make_bar(color: Color, height: float) -> Range:
+	var bar := UiArt.make_bar(color, Vector2(240.0, height))
 	bar.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN  # Don't stretch to the widest label.
-	var fill := StyleBoxFlat.new()
-	fill.bg_color = color
-	bar.add_theme_stylebox_override(&"fill", fill)
+	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	return bar
+
+
+## [param bar] with a small tinted icon on its left. Without the icon art it is just the bar.
+func _bar_row(icon: Texture2D, tint: Color, bar: Range) -> Control:
+	var picture := UiArt.icon_rect(icon, bar.custom_minimum_size.y + 8.0, tint)
+	if picture == null:
+		return bar
+	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override(&"separation", 6)
+	row.add_child(picture)
+	row.add_child(bar)
+	return row

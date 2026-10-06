@@ -17,8 +17,8 @@ var _result: Control
 var _banner: Label
 var _enemy_box: Control
 var _enemy_name: Label
-var _enemy_shield: ProgressBar
-var _enemy_hull: ProgressBar
+var _enemy_shield: Range
+var _enemy_hull: Range
 var _enemy_ship: Ship
 var _banner_token := 0
 
@@ -33,6 +33,7 @@ func _ready() -> void:
 func bind_enemy(ship: Ship, enemy: EnemyData) -> void:
 	_enemy_ship = ship
 	_enemy_name.text = enemy.display_name.to_upper()
+	_build_enemy_bars(enemy.is_boss)
 	_enemy_box.visible = true
 
 
@@ -78,7 +79,12 @@ func show_preview(enemy: EnemyData, index: int, total: int) -> void:
 		var line := spec.item.display_name
 		if spec.item is WeaponData:
 			line += "   (%s, %s)" % [MODE_NAMES[(spec.item as WeaponData).targeting], "large" if spec.item.slot_size() == HardpointData.Size.LARGE else "small"]
-		box.add_child(_label(line, Rarity.color(spec.rarity), 15))
+		var row := HBoxContainer.new()
+		var picture := UiArt.icon_rect(ArtLookup.item_icon(spec.item), 32.0)
+		if picture != null:
+			row.add_child(picture)
+		row.add_child(_label(line, Rarity.color(spec.rarity), 15))
+		box.add_child(row)
 	if enemy.is_boss:
 		box.add_child(_label("Changes tactics when badly hurt.", Color(1.0, 0.45, 0.35), 13))
 	box.add_child(HSeparator.new())
@@ -166,7 +172,7 @@ func _panel_box(root: Control, width: float) -> VBoxContainer:
 	root.add_child(center)
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size.x = width
-	panel.add_theme_stylebox_override(&"panel", ItemVisuals.slot_style(Color(0.3, 0.34, 0.45), Color(0.06, 0.07, 0.1), 2))
+	panel.add_theme_stylebox_override(&"panel", ItemVisuals.panel_style())
 	center.add_child(panel)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override(&"separation", 6)
@@ -178,7 +184,7 @@ func _build_banner() -> void:
 	_banner = Label.new()
 	_banner.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_banner.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_banner.position.y = 150.0
+	_banner.position.y = 230.0
 	_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_banner.add_theme_font_size_override(&"font_size", 40)
 	_banner.add_theme_color_override(&"font_color", Color(1.0, 0.85, 0.4))
@@ -200,22 +206,34 @@ func _build_enemy_bar() -> void:
 	_enemy_name = _label("", Color.WHITE, 16)
 	_enemy_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_enemy_box.add_child(_enemy_name)
-	_enemy_shield = _bar(Color(0.3, 0.65, 1.0))
-	_enemy_box.add_child(_enemy_shield)
-	_enemy_hull = _bar(Color(0.9, 0.25, 0.25))
-	_enemy_box.add_child(_enemy_hull)
+	_build_enemy_bars(false)
 
 
-func _bar(color: Color) -> ProgressBar:
-	var bar := ProgressBar.new()
-	bar.custom_minimum_size = Vector2(420.0, 10.0)
-	bar.max_value = 1.0
-	bar.show_percentage = false
-	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var fill := StyleBoxFlat.new()
-	fill.bg_color = color
-	bar.add_theme_stylebox_override(&"fill", fill)
-	return bar
+## (Re)builds the enemy's two bars. A boss gets the big ornate frame; anyone else gets the
+## plain bar art, shield over hull. Without bar art both are flat ProgressBars.
+func _build_enemy_bars(boss: bool) -> void:
+	for bar in [_enemy_hull, _enemy_shield]:
+		if bar != null:
+			bar.queue_free()
+	var red := Color(0.9, 0.25, 0.25)
+	var blue := Color(0.3, 0.65, 1.0)
+	if boss:
+		_enemy_hull = UiArt.make_bar(red, Vector2(440.0, 108.0), true)
+		_enemy_shield = UiArt.make_bar(blue, Vector2(380.0, 16.0))
+	else:
+		_enemy_hull = UiArt.make_bar(red, Vector2(420.0, 20.0))
+		_enemy_shield = UiArt.make_bar(blue, Vector2(420.0, 20.0))
+	if not _enemy_hull is ArtBar:  # Flat fallback: thin bars, as before.
+		_enemy_hull.custom_minimum_size = Vector2(420.0, 10.0)
+		_enemy_shield.custom_minimum_size = Vector2(420.0, 10.0)
+	_enemy_shield.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_enemy_hull.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	if boss and _enemy_hull is ArtBar:  # The frame sits above; the shield tucks in under it.
+		_enemy_box.add_child(_enemy_hull)
+		_enemy_box.add_child(_enemy_shield)
+	else:
+		_enemy_box.add_child(_enemy_shield)
+		_enemy_box.add_child(_enemy_hull)
 
 
 func _button(text: String, handler: Callable) -> Button:
