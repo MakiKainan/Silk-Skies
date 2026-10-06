@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ActData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/act_data.gd" id="1_act"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="4_enemy"]
+[ext_resource type="Resource" path="res://data/enemies/enemy_raider.tres" id="2_a"]
+[ext_resource type="Resource" path="res://data/enemies/enemy_longshot.tres" id="2_b"]
+[ext_resource type="Resource" path="res://data/enemies/enemy_warden.tres" id="2_c"]
+
+[resource]
+script = ExtResource("1_act")
+id = &"slice_act"
+display_name = "The Slice Gauntlet"
+encounters = Array[ExtResource("4_enemy")]([ExtResource("2_a"), ExtResource("2_b"), ExtResource("2_c")])

@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 
 EventBus="*res://scripts/autoload/event_bus.gd"
 ContentDB="*res://scripts/autoload/content_db.gd"
+RunState="*res://scripts/autoload/run_state.gd"
 
 [debug]
 

@@ -118,6 +118,15 @@ func can_target(candidate: Ship) -> bool:
 	return offset.length() <= effective_range() and in_arc(offset)
 
 
+## Could this weapon plausibly shoot [param candidate] right now: in range (scaled by
+## [param range_fraction]) and inside the arc? Used by AI to decide when to pull a trigger.
+func weapon_in_reach(candidate: Ship, range_fraction: float = 1.0) -> bool:
+	if candidate == null or not is_instance_valid(candidate) or not candidate.is_alive() or candidate.team == ship.team:
+		return false
+	var offset := _flat(candidate.global_position - muzzle_position())
+	return offset.length() <= effective_range() * range_fraction and in_arc(offset)
+
+
 ## Nearest living enemy that is in range and inside the arc, or null.
 func pick_auto_target() -> Ship:
 	var best: Ship
@@ -183,6 +192,14 @@ func _physics_process(delta: float) -> void:
 
 func step(delta: float) -> void:
 	cooldown_left = maxf(cooldown_left - delta, 0.0)
+	# A target that was destroyed (and freed) mid-lock or mid-salvo must not be touched again.
+	# (is_instance_valid alone: a freed object does not reliably compare equal to null.)
+	if not is_instance_valid(lock_target):
+		if lock_target != null or lock_progress > 0.0:
+			lock_progress = 0.0
+		lock_target = null
+	if not is_instance_valid(_burst_target):
+		_burst_target = null
 	if ship == null or not ship.is_alive():
 		_cancel()
 		return

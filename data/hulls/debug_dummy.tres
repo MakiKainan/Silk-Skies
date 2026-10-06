@@ -14,3 +14,4 @@ max_shield = 150.0
 shield_regen = 10.0
 shield_delay = 3.0
 armor = 4.0
+player_selectable = false

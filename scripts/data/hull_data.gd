@@ -8,6 +8,8 @@ extends Resource
 ## Model scene with one Marker3D per hardpoint. The bow points toward -Z.
 @export var model_scene: PackedScene
 @export var collision_radius: float = 1.5
+## False for enemy-only hulls and targets, so the sandbox hull picker skips them.
+@export var player_selectable: bool = true
 
 @export_group("Handling")
 @export var mass: float = 100.0

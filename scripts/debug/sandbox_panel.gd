@@ -8,6 +8,8 @@ var _hull_picker: OptionButton
 var _item_picker: OptionButton
 var _rarity_picker: OptionButton
 var _items: Array[ItemData] = []
+var _enemy_picker: OptionButton
+var _enemies: Array[EnemyData] = []
 
 
 func _ready() -> void:
@@ -52,6 +54,15 @@ func _ready() -> void:
 	item_row.add_child(_button("Open refit (I)", func() -> void: _sandbox.open_inventory()))
 	box.add_child(HSeparator.new())
 
+	_enemy_picker = OptionButton.new()
+	_enemy_picker.focus_mode = Control.FOCUS_NONE
+	box.add_child(_labelled("Enemy", _enemy_picker))
+	var enemy_row := HBoxContainer.new()
+	box.add_child(enemy_row)
+	enemy_row.add_child(_button("Spawn enemy", func() -> void: _spawn_selected_enemy()))
+	enemy_row.add_child(_button("Start gauntlet", func() -> void: _sandbox.start_gauntlet()))
+	box.add_child(HSeparator.new())
+
 	var spawn_row := HBoxContainer.new()
 	box.add_child(spawn_row)
 	spawn_row.add_child(_button("Spawn dummy", func() -> void: _sandbox.spawn_dummy()))
@@ -68,6 +79,9 @@ func bind(sandbox: Node) -> void:
 	_hull_picker.clear()
 	for hull: HullData in sandbox.hulls:
 		_hull_picker.add_item(hull.display_name)
+	_enemies = ContentDB.enemies()
+	for enemy in _enemies:
+		_enemy_picker.add_item(enemy.display_name)
 	_items = ContentDB.items()
 	for item in _items:
 		_item_picker.add_item("%s: %s" % [item.category_name(), item.display_name])
@@ -83,6 +97,11 @@ func sync_hull() -> void:
 	if _sandbox == null or _sandbox.player == null or _sandbox.player.hull == null:
 		return
 	_hull_picker.select(_sandbox.hulls.find(_sandbox.player.hull))
+
+
+func _spawn_selected_enemy() -> void:
+	if _enemy_picker.selected >= 0:
+		_sandbox.spawn_enemy(_enemies[_enemy_picker.selected])
 
 
 func _add_selected_item() -> void:

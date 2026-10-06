@@ -19,6 +19,7 @@ var _health_label: Label
 var _weapon_box: VBoxContainer
 var _weapon_rows: Array[Dictionary] = []  # {controller, label, bar}
 var _banner: Label
+var _help: Label
 
 
 func _ready() -> void:
@@ -43,7 +44,8 @@ func _ready() -> void:
 	_weapon_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_box.add_child(_weapon_box)
 
-	var help := _make_label()
+	_help = _make_label()
+	var help := _help
 	help.text = "\nW/S thrust   A/D steer   Shift = Hard Burn (hold W/A/S/D to aim it)\nmouse aims   LMB manual weapons   RMB hold on enemy = lock, release = fire\nI refit & inventory   1/2/3 hull   B bot   N dummy   X clear   R reset   F1 tuning   F2 sandbox\n[ ] time scale   \\ reset time   wheel zoom"
 	help.modulate = Color(1.0, 1.0, 1.0, 0.65)
 	_box.add_child(help)
@@ -65,6 +67,11 @@ func track(ship: Ship) -> void:
 		ship.loadout_changed.connect(_rebuild_weapons)
 	# Weapon controllers appear a frame after equip() frees the old ones.
 	_rebuild_weapons.call_deferred()
+
+
+## Replaces the key-help text under the bars.
+func set_help(text: String) -> void:
+	_help.text = text
 
 
 func show_banner(text: String) -> void:

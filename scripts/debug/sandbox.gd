@@ -16,6 +16,8 @@ const DUMMY_RESPAWN_SECONDS := 2.0
 const DUMMY_HULL_ID := &"debug_dummy"
 ## The sandbox hold is roomier than a run's (ShipLoadout.RUN_CARGO_SLOTS) so you can stock up.
 const SANDBOX_CARGO_SLOTS := 12
+const DUEL_SCENE := "res://scenes/duel/duel.tscn"
+const DEFAULT_ACT_ID := &"slice_act"
 
 var hulls: Array[HullData] = []  # Hulls a ship can sail; the dummy hull is not one of them.
 var player: Ship
@@ -43,7 +45,7 @@ var _reticle: MeshInstance3D
 func _ready() -> void:
 	_dummy_hull = ContentDB.get_hull(DUMMY_HULL_ID)
 	for hull in ContentDB.hulls():
-		if hull != _dummy_hull:
+		if hull.player_selectable:
 			hulls.append(hull)
 	# Real hulls first, debug hulls after, each group by id; keys 1..9 index this list.
 	hulls.sort_custom(func(a: HullData, b: HullData) -> bool: return _hull_sort_key(a) < _hull_sort_key(b))
@@ -59,13 +61,14 @@ func _ready() -> void:
 
 	player = SHIP_SCENE.instantiate() as Ship
 	player.free_on_death = false
-	player.cargo_capacity = SANDBOX_CARGO_SLOTS
+	RunState.cargo_capacity = SANDBOX_CARGO_SLOTS
+	var fresh := RunState.ensure_player()  # Gear carries over from a duel, if we came from one.
 	_ships.add_child(player)
-	player.setup(hulls[0])
+	player.setup(RunState.player_hull, [], RunState.loadout)
 	player.place(Vector3.ZERO, 0.0)
 	_rng.randomize()
-	_apply_default_loadout(player)
-	_stock_sample_cargo()
+	if fresh:
+		_stock_sample_cargo()
 	player.add_child(PlayerInput.new())
 	_camera_rig.target = player
 	_camera_rig.snap_to_target()
@@ -145,6 +148,7 @@ func set_player_hull(index: int) -> void:
 	if index < 0 or index >= hulls.size() or hulls[index] == player.hull:
 		return
 	player.swap_hull(hulls[index])  # Keeps the loadout: what fits re-mounts, the rest goes to cargo.
+	RunState.player_hull = hulls[index]
 
 
 ## Rolls a [param data] drop at [param rarity] and puts it in the player's cargo hold.
@@ -160,6 +164,23 @@ func spawn_item(data: ItemData, rarity: Rarity.Type) -> bool:
 func spawn_random_item() -> bool:
 	var items := ContentDB.items()
 	return spawn_item(items[_rng.randi_range(0, items.size() - 1)], _rng.randi_range(Rarity.Type.COMMON, Rarity.Type.EPIC) as Rarity.Type)
+
+
+## Spawns an AI enemy from its recipe, away from the player.
+func spawn_enemy(enemy: EnemyData) -> void:
+	if _enemies.size() >= MAX_ENEMIES:
+		return
+	var spot := _free_spot(24.0, 36.0)
+	var ship := EnemyFactory.spawn(_ships, enemy, spot, 0.0, _rng)
+	ship.show_arcs = _show_arcs
+	_enemies.append(ship)
+	ship.tree_exiting.connect(_enemies.erase.bind(ship))
+
+
+## Starts the slice act and jumps to the duel scene with the current gear.
+func start_gauntlet() -> void:
+	RunState.start_act(ContentDB.get_by_id(DEFAULT_ACT_ID) as ActData)
+	get_tree().change_scene_to_file(DUEL_SCENE)
 
 
 func open_inventory() -> void:
@@ -281,20 +302,6 @@ func _stock_sample_cargo() -> void:
 		var data := ContentDB.get_by_id(entry[0]) as ItemData
 		if data != null:
 			player.loadout.add_to_cargo(ItemRoller.roll(data, entry[1], _rng))
-
-
-## Small turrets get a Pulse Laser; Large ones a Railgun, then a Missile Pod.
-func _apply_default_loadout(ship: Ship) -> void:
-	var large_seen := 0
-	for index in ship.hull.hardpoints.size():
-		var hardpoint := ship.hull.hardpoints[index]
-		if hardpoint.type != HardpointData.Type.TURRET:
-			continue
-		var id: StringName = &"pulse_laser"
-		if hardpoint.size == HardpointData.Size.LARGE:
-			id = &"railgun" if large_seen == 0 else &"missile_pod"
-			large_seen += 1
-		ship.equip(index, ContentDB.get_by_id(id) as WeaponData)
 
 
 func _on_ship_hit(ship: Node, result: DamageResult) -> void:

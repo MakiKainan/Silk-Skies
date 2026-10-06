@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/data/item_spec.gd" id="2_spec"]
+[ext_resource type="Script" path="res://scripts/data/phase_data.gd" id="3_phase"]
+[ext_resource type="Resource" path="res://data/weapons/pulse_laser.tres" id="w_pulse"]
+[ext_resource type="Resource" path="res://data/weapons/autocannon.tres" id="w_auto"]
+[ext_resource type="Resource" path="res://data/weapons/railgun.tres" id="w_rail"]
+[ext_resource type="Resource" path="res://data/weapons/missile_pod.tres" id="w_pod"]
+
+[ext_resource type="Resource" path="res://data/hulls/longshot.tres" id="hull"]
+[ext_resource type="Resource" path="res://data/ai/ai_sniper.tres" id="ai"]
+
+[sub_resource type="Resource" id="S1"]
+script = ExtResource("2_spec")
+item = ExtResource("w_rail")
+rarity = 1
+slot = &"Turret_A"
+
+[sub_resource type="Resource" id="S2"]
+script = ExtResource("2_spec")
+item = ExtResource("w_pulse")
+rarity = 0
+slot = &"Turret_B"
+
+[resource]
+script = ExtResource("1_enemy")
+id = &"enemy_longshot"
+display_name = "Longshot"
+description = "A sniper that holds its range and fires a charged railgun. Watch the glow, then sidestep."
+hull = ExtResource("hull")
+loadout = Array[ExtResource("2_spec")]([SubResource("S1"), SubResource("S2")])
+ai_profile = ExtResource("ai")

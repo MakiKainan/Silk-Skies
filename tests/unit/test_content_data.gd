@@ -17,7 +17,9 @@ func test_content_db_autoload_indexes_the_hulls() -> void:
 	assert_not_null(ContentDB.get_hull(&"debug_barge"))
 	assert_null(ContentDB.get_hull(&"no_such_hull"))
 	assert_not_null(ContentDB.get_hull(&"debug_dummy"))
-	assert_eq(ContentDB.hulls().size(), 4)
+	assert_eq(ContentDB.hulls().size(), 7, "3 player hulls, the dummy, and 3 enemy hulls")
+	var playable := ContentDB.hulls().filter(func(h: HullData) -> bool: return h.player_selectable)
+	assert_eq(playable.size(), 3, "the player can pick the frigate, skiff and barge")
 
 
 func test_starter_frigate_matches_the_spec_loadout() -> void:

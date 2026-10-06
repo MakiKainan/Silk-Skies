@@ -4,6 +4,8 @@ extends CanvasLayer
 ## Right: the ship's final stats. Drag items between cells; the ship updates as you do.
 ## Pauses the game while open. Later this same screen becomes the between-duels Refit.
 
+signal closed
+
 const COLUMNS := 4
 const SECTION_TITLES := {
 	HardpointData.Type.TURRET: "TURRETS",
@@ -47,6 +49,7 @@ func open(pause: bool = true) -> void:
 func close() -> void:
 	visible = false
 	get_tree().paused = false
+	closed.emit()
 
 
 func toggle() -> void:

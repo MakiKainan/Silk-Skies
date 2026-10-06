@@ -1,0 +1,50 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/data/item_spec.gd" id="2_spec"]
+[ext_resource type="Script" path="res://scripts/data/phase_data.gd" id="3_phase"]
+[ext_resource type="Resource" path="res://data/weapons/pulse_laser.tres" id="w_pulse"]
+[ext_resource type="Resource" path="res://data/weapons/autocannon.tres" id="w_auto"]
+[ext_resource type="Resource" path="res://data/weapons/railgun.tres" id="w_rail"]
+[ext_resource type="Resource" path="res://data/weapons/missile_pod.tres" id="w_pod"]
+
+[ext_resource type="Resource" path="res://data/hulls/warden.tres" id="hull"]
+[ext_resource type="Resource" path="res://data/ai/ai_warden_guard.tres" id="ai"]
+[ext_resource type="Resource" path="res://data/ai/ai_warden_enraged.tres" id="ai2"]
+
+[sub_resource type="Resource" id="S1"]
+script = ExtResource("2_spec")
+item = ExtResource("w_auto")
+rarity = 0
+slot = &"Turret_A"
+
+[sub_resource type="Resource" id="P1"]
+script = ExtResource("2_spec")
+item = ExtResource("w_pod")
+rarity = 1
+slot = &"Turret_D"
+
+[sub_resource type="Resource" id="P3"]
+script = ExtResource("2_spec")
+item = ExtResource("w_pulse")
+rarity = 0
+slot = &"Turret_B"
+
+[sub_resource type="Resource" id="Phase2"]
+script = ExtResource("3_phase")
+hull_threshold = 0.5
+banner = "THE WARDEN OVERCLOCKS"
+ai_profile = ExtResource("ai2")
+added_items = Array[ExtResource("2_spec")]([SubResource("P1"), SubResource("P3")])
+refill_shield = true
+
+[resource]
+script = ExtResource("1_enemy")
+id = &"enemy_warden"
+display_name = "The Warden"
+description = "A heavy guardian. At half hull it overclocks: shields restore, a pulse laser and a missile pod come online, and it charges."
+hull = ExtResource("hull")
+loadout = Array[ExtResource("2_spec")]([SubResource("S1")])
+ai_profile = ExtResource("ai")
+phases = Array[ExtResource("3_phase")]([SubResource("Phase2")])
+is_boss = true

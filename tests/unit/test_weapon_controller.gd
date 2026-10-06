@@ -421,3 +421,31 @@ func test_equipping_checks_the_slot_and_leaves_it_alone_on_failure() -> void:
 	assert_true(player.equip(1, null))
 	await wait_physics_frames(1)
 	assert_null(player.weapon_at(1))
+
+
+# --- Targets that die mid-lock or mid-salvo ---------------------------------------------------
+
+func test_a_target_freed_mid_salvo_does_not_break_the_weapon() -> void:
+	var gun := _controller(1, &"missile_pod")
+	var enemy := _enemy(Vector3(0, 0, -25))
+	player.aim_at(enemy.global_position)
+	_hold_lock(gun, 1.0)
+	_release_lock(gun)
+	assert_eq(projectiles().size(), 1, "first missile away, three still to come")
+	enemy.free()  # Destroyed and removed while the salvo is still launching.
+	gun.step(0.6)
+	assert_eq(projectiles().size(), 4, "the rest of the salvo still launches, just unguided")
+	gun.step(0.1)
+	assert_true(gun.is_ready() or gun.cooldown_left > 0.0, "and the weapon carries on normally")
+
+
+func test_a_lock_target_freed_mid_lock_is_dropped() -> void:
+	var gun := _controller(1, &"missile_pod")
+	var enemy := _enemy(Vector3(0, 0, -25))
+	player.aim_at(enemy.global_position)
+	_hold_lock(gun, 0.5)
+	assert_eq(gun.lock_target, enemy)
+	enemy.free()
+	gun.step(0.05)
+	assert_null(gun.lock_target)
+	assert_eq(gun.lock_progress, 0.0)

@@ -48,6 +48,16 @@ func items() -> Array[ItemData]:
 	return out
 
 
+## Every enemy, sorted by id.
+func enemies() -> Array[EnemyData]:
+	var out: Array[EnemyData] = []
+	for res: Resource in _by_id.values():
+		if res is EnemyData:
+			out.append(res)
+	out.sort_custom(func(a: EnemyData, b: EnemyData) -> bool: return String(a.id) < String(b.id))
+	return out
+
+
 ## All weapons, sorted by id.
 func weapons() -> Array[WeaponData]:
 	var out: Array[WeaponData] = []

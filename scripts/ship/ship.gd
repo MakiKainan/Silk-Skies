@@ -64,7 +64,8 @@ func setup(p_hull: HullData, mods: Array[StatMod] = [], keep_loadout: ShipLoadou
 	_extra_mods = mods.duplicate()
 	if keep_loadout != null:
 		loadout = keep_loadout
-		loadout.rebind_hull(hull, false)
+		if loadout.hull != hull:  # Same hull: leave every item exactly where it is.
+			loadout.rebind_hull(hull, false)
 	else:
 		loadout = ShipLoadout.new(hull, cargo_capacity)
 	if not loadout.changed.is_connected(_apply_loadout):

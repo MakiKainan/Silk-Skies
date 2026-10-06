@@ -44,6 +44,14 @@ static func spawn(parent: Node, p_data: ProjectileData, source: Ship, origin: Ve
 	return projectile
 
 
+func team() -> StringName:
+	return _team
+
+
+func current_speed() -> float:
+	return _speed
+
+
 func _ready() -> void:
 	add_to_group(GROUP)
 	_build_visual()

@@ -5,8 +5,8 @@ extends RefCounted
 ##
 ## Implemented: empty/duplicate ids, hull model scene + hardpoint markers, weapons,
 ## projectiles, and item basics (name, roll pool ranges, fighter bays).
-## Added with their content: references to missing ids (enemy loadouts, acts, synergies)
-## and items assigned to an incompatible slot type.
+## Enemies: hull + AI present, loadout slots exist and items fit them, phase thresholds fall.
+## Acts: no empty or null encounters. Added later: synergies.
 
 static func validate(resources: Array) -> PackedStringArray:
 	var errors := PackedStringArray()
@@ -20,6 +20,12 @@ static func validate(resources: Array) -> PackedStringArray:
 			_check_weapon(res as WeaponData, errors)
 		elif res is ProjectileData:
 			_check_projectile(res as ProjectileData, errors)
+		elif res is AIProfile:
+			_check_ai_profile(res as AIProfile, errors)
+		elif res is EnemyData:
+			_check_enemy(res as EnemyData, errors)
+		elif res is ActData:
+			_check_act(res as ActData, errors)
 	return errors
 
 
@@ -64,6 +70,70 @@ static func _check_item(item: ItemData, errors: PackedStringArray) -> void:
 				errors.append("%s: roll template '%s' has min_value above max_value" % [where, template.stat])
 	if item is FighterBayData and (item as FighterBayData).fighter_count < 1:
 		errors.append("%s: fighter bay must launch at least 1 fighter" % where)
+
+
+static func _check_ai_profile(profile: AIProfile, errors: PackedStringArray) -> void:
+	var where := _where(profile)
+	if profile.preferred_range <= 0.0:
+		errors.append("%s: preferred_range must be positive" % where)
+	if profile.range_band < 0.0 or profile.range_band >= profile.preferred_range:
+		errors.append("%s: range_band must be between 0 and preferred_range" % where)
+	if profile.orbit_flip_min <= 0.0 or profile.orbit_flip_max < profile.orbit_flip_min:
+		errors.append("%s: orbit flip times must be positive with max >= min" % where)
+	if profile.reaction_time <= 0.0:
+		errors.append("%s: reaction_time must be positive" % where)
+
+
+## An enemy needs a hull and AI, and every item it carries must name a real hardpoint it fits.
+static func _check_enemy(enemy: EnemyData, errors: PackedStringArray) -> void:
+	var where := _where(enemy)
+	if enemy.hull == null:
+		errors.append("%s: enemy has no hull" % where)
+		return
+	if enemy.ai_profile == null:
+		errors.append("%s: enemy has no ai_profile" % where)
+	var seen := {}
+	for spec in enemy.loadout:
+		_check_item_spec(spec, enemy.hull, where, errors)
+		if spec != null:
+			if seen.has(spec.slot):
+				errors.append("%s: two loadout items on '%s'" % [where, spec.slot])
+			seen[spec.slot] = true
+	var last_threshold := 1.0
+	for phase in enemy.phases:
+		if phase == null:
+			errors.append("%s: null entry in phases" % where)
+			continue
+		if phase.hull_threshold >= last_threshold:
+			errors.append("%s: phases must have strictly falling hull_threshold" % where)
+		last_threshold = phase.hull_threshold
+		for spec in phase.added_items:
+			_check_item_spec(spec, enemy.hull, "%s (phase at %.0f%%)" % [where, phase.hull_threshold * 100.0], errors)
+	if enemy.is_boss and enemy.phases.is_empty():
+		errors.append("%s: a boss should have at least one phase" % where)
+
+
+static func _check_item_spec(spec: ItemSpec, hull: HullData, where: String, errors: PackedStringArray) -> void:
+	if spec == null or spec.item == null:
+		errors.append("%s: loadout entry with no item" % where)
+		return
+	var hardpoint: HardpointData
+	for candidate in hull.hardpoints:
+		if candidate != null and candidate.marker_name == spec.slot:
+			hardpoint = candidate
+	if hardpoint == null:
+		errors.append("%s: loadout slot '%s' is not a hardpoint on hull '%s'" % [where, spec.slot, hull.id])
+	elif not Loadout.can_equip(hardpoint, spec.item):
+		errors.append("%s: %s does not fit hardpoint '%s'" % [where, spec.item.id, spec.slot])
+
+
+static func _check_act(act: ActData, errors: PackedStringArray) -> void:
+	var where := _where(act)
+	if act.encounters.is_empty():
+		errors.append("%s: act has no encounters" % where)
+	for encounter in act.encounters:
+		if encounter == null:
+			errors.append("%s: null encounter" % where)
 
 
 static func _check_weapon(weapon: WeaponData, errors: PackedStringArray) -> void:
