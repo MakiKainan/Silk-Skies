@@ -91,6 +91,15 @@ func set_item(kind: Kind, index: int, item: ItemInstance) -> bool:
 	return true
 
 
+## Moves the weapon in a cell to the other mouse button. False if there's no toggleable weapon.
+func toggle_fire_group(kind: Kind, index: int) -> bool:
+	var item := get_item(kind, index)
+	if item == null or not item.toggle_fire_group():
+		return false
+	changed.emit()
+	return true
+
+
 ## Removes and returns the item in a cell.
 func take(kind: Kind, index: int) -> ItemInstance:
 	var item := get_item(kind, index)

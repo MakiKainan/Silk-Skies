@@ -4,7 +4,7 @@ extends RefCounted
 ## tests inject deliberately broken data into it.
 ##
 ## Implemented: empty/duplicate ids, hull model scene + hardpoint markers, weapons,
-## projectiles, and item basics (name, roll pool ranges, fighter bays).
+## projectiles, and item basics (name, roll pool ranges, fighter bays and their fighters).
 ## Enemies: hull + AI present, loadout slots exist and items fit them, phase thresholds fall.
 ## Acts: no empty or null encounters. Art (optional, but if present): scenes load with a
 ## Node3D root, icons are square 64-512 px, files live under res://assets/. Added later: synergies.
@@ -71,9 +71,22 @@ static func _check_item(item: ItemData, errors: PackedStringArray) -> void:
 				errors.append("%s: null entry in roll pool" % where)
 			elif template.min_value > template.max_value:
 				errors.append("%s: roll template '%s' has min_value above max_value" % [where, template.stat])
-	if item is FighterBayData and (item as FighterBayData).fighter_count < 1:
-		errors.append("%s: fighter bay must launch at least 1 fighter" % where)
+	if item is FighterBayData:
+		_check_bay(item as FighterBayData, where, errors)
 	_check_icon(ArtLookup.item_icon(item), "icon", where, errors)
+
+
+static func _check_bay(bay: FighterBayData, where: String, errors: PackedStringArray) -> void:
+	if bay.fighter_count < 1:
+		errors.append("%s: fighter bay must launch at least 1 fighter" % where)
+	if bay.projectile == null:
+		errors.append("%s: fighter bay has no projectile for its fighters" % where)
+	if bay.fighter_speed <= 0.0 or bay.fighter_turn_deg <= 0.0:
+		errors.append("%s: fighters need a positive speed and turn rate" % where)
+	if bay.fire_cooldown <= 0.0 or bay.launch_cooldown <= 0.0 or bay.fighter_lifetime <= 0.0:
+		errors.append("%s: fighter fire_cooldown, launch_cooldown and lifetime must be positive" % where)
+	if bay.fighter_hull <= 0.0:
+		errors.append("%s: fighters need some hull" % where)
 
 
 static func _check_ai_profile(profile: AIProfile, errors: PackedStringArray) -> void:
@@ -150,8 +163,14 @@ static func _check_weapon(weapon: WeaponData, errors: PackedStringArray) -> void
 		errors.append("%s: shots_per_fire must be at least 1" % where)
 	if weapon.targeting == WeaponData.Targeting.LOCK_ON and weapon.lock_time <= 0.0:
 		errors.append("%s: lock-on weapon needs a positive lock_time" % where)
-	if weapon.targeting != WeaponData.Targeting.MANUAL and weapon.range <= 0.0:
-		errors.append("%s: auto/lock-on weapon needs a positive range" % where)
+	if weapon.targeting == WeaponData.Targeting.LOCK_ON and weapon.default_fire_group != WeaponData.FireGroup.SECONDARY:
+		errors.append("%s: lock-on weapon must default to the SECONDARY fire group" % where)
+	if weapon.range <= 0.0:
+		errors.append("%s: weapon needs a positive range" % where)
+	if weapon.heat_per_shot < 0.0:
+		errors.append("%s: heat_per_shot can't be negative" % where)
+	if weapon.heat_per_shot > 0.0 and (weapon.heat_cool_rate <= 0.0 or weapon.overheat_lockout < 0.0):
+		errors.append("%s: a heating weapon needs a positive heat_cool_rate" % where)
 	_check_scene(ArtLookup.barrel_scene(weapon), "barrel_scene", where, errors)
 	_check_audio(ArtLookup.fire_sound(weapon), "fire_sound", where, errors)
 

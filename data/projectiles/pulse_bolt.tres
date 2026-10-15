@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_proj")
 id = &"pulse_bolt"
-damage = 3.0
+damage = 8.5
 damage_type = 0
 speed = 55.0
 lifetime = 0.9

@@ -11,7 +11,7 @@ signal retry_pressed
 signal menu_pressed
 signal new_run_pressed
 
-const MODE_NAMES := ["auto", "manual", "lock-on"]
+const MODE_NAMES := ["aimed", "lock-on"]
 
 var _preview: Control
 var _result: Control

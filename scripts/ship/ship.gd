@@ -14,6 +14,7 @@ signal died(source: Node)
 const GROUP := &"ships"
 const TEAM_PLAYER := &"player"
 const TEAM_ENEMY := &"enemy"
+const SHIELD_BREAK_COLOR := Color(0.4, 0.75, 1.0)
 
 var hull: HullData
 ## What this ship carries: mounted items and the cargo hold. Change it through this object
@@ -39,8 +40,8 @@ var mounts: Array[HardpointMount] = []
 
 var _extra_mods: Array[StatMod] = []
 var _triggers := {
-	WeaponData.Targeting.MANUAL: false,
-	WeaponData.Targeting.LOCK_ON: false,
+	WeaponData.FireGroup.PRIMARY: false,
+	WeaponData.FireGroup.SECONDARY: false,
 }
 
 @onready var stats: StatsComponent = $StatsComponent
@@ -54,6 +55,7 @@ func _ready() -> void:
 	add_to_group(GROUP)
 	health.setup(stats)
 	health.destroyed.connect(_on_destroyed)
+	health.shield_broken.connect(_on_shield_broken)
 
 
 ## Builds the ship from [param p_hull]. [param mods] are extra stat modifiers on top of the
@@ -141,14 +143,21 @@ func aim_at(world_point: Vector3) -> void:
 	aim_point = Vector3(world_point.x, 0.0, world_point.z)
 
 
-## Holds or releases the trigger for a weapon class. Auto weapons ignore triggers.
-func set_trigger(mode: WeaponData.Targeting, held: bool) -> void:
-	if _triggers.has(mode):
-		_triggers[mode] = held
+## Holds or releases a mouse button's trigger (PRIMARY = left, SECONDARY = right). Every
+## weapon in that fire group reacts to it.
+func set_trigger(group: WeaponData.FireGroup, held: bool) -> void:
+	if _triggers.has(group):
+		_triggers[group] = held
 
 
-func is_trigger_held(mode: WeaponData.Targeting) -> bool:
-	return _triggers.get(mode, false)
+func is_trigger_held(group: WeaponData.FireGroup) -> bool:
+	return _triggers.get(group, false)
+
+
+## Holds or releases both triggers at once.
+func set_all_triggers(held: bool) -> void:
+	for group in _triggers:
+		_triggers[group] = held
 
 
 # --- Loadout -------------------------------------------------------------------------
@@ -170,6 +179,45 @@ func weapon_at(index: int) -> WeaponController:
 	if index < 0 or index >= mounts.size() or mounts[index] == null:
 		return null
 	return mounts[index].weapon_controller
+
+
+## Every equipped fighter bay, in hardpoint order.
+func bays() -> Array[FighterBayController]:
+	var out: Array[FighterBayController] = []
+	for mount in mounts:
+		if mount != null and mount.bay_controller != null:
+			out.append(mount.bay_controller)
+	return out
+
+
+## Equipped items with an active, in action-key order (Q, E, R): fighter bays, then techmods,
+## then crew, each in hardpoint order. The ActionBar labels its cells from this same list.
+func active_items() -> Array[ItemInstance]:
+	var bay_items: Array[ItemInstance] = []
+	var techmods: Array[ItemInstance] = []
+	var crew: Array[ItemInstance] = []
+	for item in loadout.equipped():
+		var data := item.data()
+		if data is FighterBayData:
+			bay_items.append(item)
+		elif data != null and data.active_name != "":
+			if data is TechmodData:
+				techmods.append(item)
+			elif data is CrewData:
+				crew.append(item)
+	return bay_items + techmods + crew
+
+
+## Uses the active on key [param index] (0 = Q, 1 = E, 2 = R). Only fighter bays have a runtime
+## so far; crew and techmod actives do nothing yet. Returns true if something happened.
+func activate(index: int) -> bool:
+	var actives := active_items()
+	if index < 0 or index >= actives.size() or not is_alive():
+		return false
+	for bay in bays():
+		if bay.instance == actives[index]:
+			return bay.launch()
+	return false
 
 
 ## Every equipped weapon, in hardpoint order.
@@ -200,6 +248,11 @@ func _apply_loadout() -> void:
 				mount.equip(item.data() as WeaponData, self, item)
 		elif mount.weapon_controller != null:
 			mount.equip(null, self)
+		if item != null and item.data() is FighterBayData:
+			if mount.bay_controller == null or mount.bay_controller.instance != item:
+				mount.equip_bay(item.data() as FighterBayData, self, item)
+		elif mount.bay_controller != null:
+			mount.equip_bay(null, self)
 	stats.set_mods(_global_mods())
 	var global := LoadoutStats.global_mods(loadout.equipped())
 	for controller in weapons():
@@ -232,6 +285,12 @@ func _on_destroyed(source: Node) -> void:
 	died.emit(source)
 	if free_on_death:
 		queue_free()
+
+
+## A burst of shield-blue as the shield shatters.
+func _on_shield_broken() -> void:
+	if is_inside_tree() and get_parent() != null:
+		Vfx.ring(get_parent(), global_position, hull.collision_radius * 2.4, SHIELD_BREAK_COLOR, 0.4)
 
 
 ## Brings a dead ship back at [param world_position] with full health.

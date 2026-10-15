@@ -6,7 +6,8 @@ extends RefCounted
 ##   unabsorbed part carries on as a *fraction of the raw hit*, so no multiplier is applied twice.
 ## - Armor removes a flat amount from what's left (kinetic ignores half of it), but a hit that
 ##   reaches the armor layer is never reduced below min(what's left, 1).
-## - Hull takes the rest * the type's hull multiplier.
+## - Hull takes the rest * the type's hull multiplier (* [param hull_mult], which is above 1
+##   while a broken shield leaves the hull exposed; see HealthComponent).
 ##
 ## These are starting tuning values; edit the tables to rebalance.
 
@@ -30,7 +31,7 @@ const HULL_MULT := {
 const MIN_ARMORED_DAMAGE := 1.0
 
 
-static func resolve(damage: float, type: Damage.Type, shield: float, armor: float, hull: float) -> DamageResult:
+static func resolve(damage: float, type: Damage.Type, shield: float, armor: float, hull: float, hull_mult: float = 1.0) -> DamageResult:
 	var result := DamageResult.new()
 	result.type = type
 	result.shield_left = shield
@@ -56,7 +57,7 @@ static func resolve(damage: float, type: Damage.Type, shield: float, armor: floa
 	result.armor_absorbed = leftover - after_armor
 
 	# Hull.
-	var hull_hit := minf(after_armor * float(HULL_MULT[type]), hull)
+	var hull_hit := minf(after_armor * float(HULL_MULT[type]) * hull_mult, hull)
 	result.hull_damage = hull_hit
 	result.hull_left = hull - hull_hit
 	result.destroyed = result.hull_left <= 0.0

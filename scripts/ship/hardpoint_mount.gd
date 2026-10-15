@@ -13,12 +13,17 @@ const TYPE_COLORS := {
 }
 ## How fast the barrel can swing, degrees per second.
 const BARREL_TURN_DEG := 540.0
+## Barrel tint as a weapon nears overheating.
+const HEAT_COLOR := Color(1.0, 0.22, 0.08)
 
 var data: HardpointData
 var weapon_controller: WeaponController
+## Set while a fighter bay is mounted here.
+var bay_controller: FighterBayController
 
 var _barrel_pivot: Node3D
 var _barrel_material: StandardMaterial3D
+var _barrel_base_color := Color.WHITE
 var _arc_wedge: MeshInstance3D
 
 
@@ -55,8 +60,22 @@ func equip(weapon: WeaponData, ship: Ship, instance: ItemInstance = null) -> voi
 	weapon_controller.setup(weapon, data, ship, self, instance)
 
 
-## Swings the barrel toward [param world_direction]; [param glow] (0..1) brightens it.
-func aim_barrel(world_direction: Vector3, glow: float, delta: float) -> void:
+## Mounts fighter bay [param bay] (or removes it if null). The caller has already checked fit.
+func equip_bay(bay: FighterBayData, ship: Ship, instance: ItemInstance = null) -> void:
+	if bay_controller != null:
+		bay_controller.queue_free()
+		bay_controller = null
+	if bay == null:
+		return
+	bay_controller = FighterBayController.new()
+	bay_controller.name = "FighterBayController"
+	add_child(bay_controller)
+	bay_controller.setup(bay, ship, self, instance)
+
+
+## Swings the barrel toward [param world_direction]; [param glow] (0..1, charge) brightens it and
+## [param heat] (0..1) shifts it toward red-hot.
+func aim_barrel(world_direction: Vector3, glow: float, delta: float, heat: float = 0.0) -> void:
 	if _barrel_pivot == null:
 		return
 	var wanted_yaw := atan2(-world_direction.x, -world_direction.z)
@@ -64,7 +83,9 @@ func aim_barrel(world_direction: Vector3, glow: float, delta: float) -> void:
 	var step := deg_to_rad(BARREL_TURN_DEG) * delta
 	_barrel_pivot.global_rotation.y += clampf(diff, -step, step)
 	if _barrel_material != null:  # Real barrel models bring their own look: no glow tint.
-		_barrel_material.emission_energy_multiplier = glow * 5.0
+		var hot := clampf((heat - 0.35) / 0.65, 0.0, 1.0)  # Cool barrels don't tint.
+		_barrel_material.emission = _barrel_base_color.lerp(HEAT_COLOR, hot)
+		_barrel_material.emission_energy_multiplier = maxf(glow * 5.0, hot * 3.0)
 
 
 func set_arc_visible(on: bool) -> void:
@@ -92,6 +113,7 @@ func _build_barrel(weapon: WeaponData) -> void:
 	_barrel_material.albedo_color = Damage.TYPE_COLORS[weapon.projectile.damage_type]
 	_barrel_material.emission_enabled = true
 	_barrel_material.emission = _barrel_material.albedo_color
+	_barrel_base_color = _barrel_material.albedo_color
 	_barrel_material.emission_energy_multiplier = 0.0
 	var mesh := BoxMesh.new()
 	mesh.size = Vector3(thickness, thickness, length)

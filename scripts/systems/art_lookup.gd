@@ -52,6 +52,11 @@ static func barrel_scene(weapon: WeaponData) -> PackedScene:
 	return find(weapon.barrel_scene, "models/weapons/%s_barrel" % weapon.id, SCENE_EXT) as PackedScene
 
 
+## A launched fighter's model, facing -Z. Found as models/fighters/<bay_id>_fighter.
+static func fighter_scene(bay: FighterBayData) -> PackedScene:
+	return find(null, "models/fighters/%s_fighter" % bay.id, SCENE_EXT) as PackedScene
+
+
 static func fire_sound(weapon: WeaponData) -> AudioStream:
 	return find(weapon.fire_sound, "audio/sfx/%s_fire" % weapon.id, AUDIO_EXT) as AudioStream
 

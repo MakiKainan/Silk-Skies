@@ -36,6 +36,11 @@ arc_deg = 360
 arc_center_deg = 0
 marker_name = &"Turret_C"
 
+[sub_resource type="Resource" id="HP_bay"]
+script = ExtResource("2_hp")
+type = 1
+marker_name = &"Bay"
+
 [resource]
 script = ExtResource("1_hull")
 id = &"warden"
@@ -51,9 +56,9 @@ drag = 0.3
 lateral_grip = 1.0
 burn_impulse = 14
 burn_cooldown = 5
-max_hull = 900
+max_hull = 750
 max_shield = 250
 shield_regen = 5
-shield_delay = 5
+shield_delay = 3.5
 armor = 4
-hardpoints = Array[ExtResource("2_hp")]([SubResource("HP_a"), SubResource("HP_d"), SubResource("HP_b"), SubResource("HP_c")])
+hardpoints = Array[ExtResource("2_hp")]([SubResource("HP_a"), SubResource("HP_d"), SubResource("HP_b"), SubResource("HP_c"), SubResource("HP_bay")])

@@ -2,6 +2,7 @@ class_name FollowCamera
 extends Node3D
 ## Steep top-down battle camera. North-up (it never rotates with the ship), smoothly
 ## follows its target and drifts a little way ahead of where the target is heading.
+## add_trauma() shakes it (HitFeel calls it on big hits); the shake fades on its own.
 
 @export var target: Node3D
 @export var height: float = 32.0
@@ -11,7 +12,16 @@ extends Node3D
 ## Seconds of the target's velocity to look ahead by.
 @export var lookahead: float = 0.35
 
+## Metres of offset at full trauma.
+@export var max_shake: float = 1.1
+## Trauma lost per second.
+@export var shake_decay: float = 2.2
+
 var camera: Camera3D
+## 0..1. The shake offset grows with its square, so small knocks stay subtle.
+var trauma: float = 0.0
+
+var _shake_time: float = 0.0
 
 
 func _ready() -> void:
@@ -28,6 +38,23 @@ func snap_to_target() -> void:
 	if target != null:
 		global_position = _goal()
 		reset_physics_interpolation()
+
+
+## Adds shake (0..1, capped at 1 in total).
+func add_trauma(amount: float) -> void:
+	trauma = clampf(trauma + amount, 0.0, 1.0)
+
+
+func _process(delta: float) -> void:
+	if trauma <= 0.0:
+		camera.h_offset = 0.0
+		camera.v_offset = 0.0
+		return
+	_shake_time += delta * 40.0
+	var strength := trauma * trauma * max_shake
+	camera.h_offset = sin(_shake_time * 1.3) * cos(_shake_time * 0.7) * strength
+	camera.v_offset = sin(_shake_time * 0.9 + 1.7) * strength
+	trauma = maxf(trauma - shake_decay * delta, 0.0)
 
 
 func _physics_process(delta: float) -> void:

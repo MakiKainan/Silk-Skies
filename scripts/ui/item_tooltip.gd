@@ -31,6 +31,8 @@ static func build(item: ItemInstance) -> Control:
 		if glyph != null:
 			header.add_child(glyph)
 	box.add_child(_label("%s %s%s" % [Rarity.display_name(item.rarity), data.category_name(), _subtitle(data)], Color(1, 1, 1, 0.6), 13))
+	if data is WeaponData:
+		box.add_child(_label(_fire_line(item), Color(0.6, 0.85, 1.0), 13))
 	box.add_child(HSeparator.new())
 
 	for line in _stat_lines(item):
@@ -96,9 +98,17 @@ static func _stat_lines(item: ItemInstance) -> PackedStringArray:
 static func _subtitle(data: ItemData) -> String:
 	if data is WeaponData:
 		var weapon := data as WeaponData
-		var mode: String = ["auto", "manual", "lock-on"][weapon.targeting]
+		var mode: String = ["aimed", "lock-on"][weapon.targeting]
 		return " - %s, %s" % ["Large" if weapon.size == HardpointData.Size.LARGE else "Small", mode]
 	return ""
+
+
+## Which mouse button fires the weapon, and whether the refit screen can change it.
+static func _fire_line(item: ItemInstance) -> String:
+	var key := WeaponData.group_key(item.fire_group_of())
+	if item.can_toggle_fire_group():
+		return "Fires on %s  (right-click the slot to switch)" % key
+	return "Fires on %s  (hold to lock, release to fire)" % key
 
 
 static func _label(text: String, color: Color, size: int) -> Label:

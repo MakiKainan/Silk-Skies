@@ -1,11 +1,14 @@
 class_name DamageNumbers
 extends Node3D
 ## Floats a number up from every hit, coloured by what it hit: shield damage blue, armor
-## soak grey (shown as a minus), hull damage red. Listens to the EventBus; add one to a scene.
+## soak grey (shown as a minus), hull damage red (orange and bigger while the hull is exposed by a
+## shield break), plus a SHIELD BREAK tag. Listens to the EventBus; add one to a scene.
 
 const SHIELD_COLOR := Color(0.4, 0.7, 1.0)
 const ARMOR_COLOR := Color(0.75, 0.75, 0.75)
 const HULL_COLOR := Color(1.0, 0.3, 0.25)
+const EXPOSED_COLOR := Color(1.0, 0.6, 0.15)
+const BREAK_COLOR := Color(0.55, 0.85, 1.0)
 
 
 func _ready() -> void:
@@ -26,7 +29,13 @@ func _on_ship_hit(_ship: Node, result: DamageResult) -> void:
 		_spawn("-%d" % roundi(result.armor_absorbed), ARMOR_COLOR, result.position, row, 0.75)
 		row += 1
 	if result.hull_damage > 0.0:
-		_spawn("%d" % roundi(result.hull_damage), HULL_COLOR, result.position, row, 1.25)
+		if result.exposed:
+			_spawn("%d!" % roundi(result.hull_damage), EXPOSED_COLOR, result.position, row, 1.45)
+		else:
+			_spawn("%d" % roundi(result.hull_damage), HULL_COLOR, result.position, row, 1.25)
+		row += 1
+	if result.shield_broken:
+		_spawn("SHIELD BREAK", BREAK_COLOR, result.position, row, 0.9)
 
 
 func _spawn(text: String, color: Color, at: Vector3, row: int, scale_factor: float) -> void:

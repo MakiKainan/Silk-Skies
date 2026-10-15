@@ -7,6 +7,7 @@
 [ext_resource type="Resource" path="res://data/weapons/autocannon.tres" id="w_auto"]
 [ext_resource type="Resource" path="res://data/weapons/railgun.tres" id="w_rail"]
 [ext_resource type="Resource" path="res://data/weapons/missile_pod.tres" id="w_pod"]
+[ext_resource type="Resource" path="res://data/fighters/strike_bay.tres" id="f_strike"]
 
 [ext_resource type="Resource" path="res://data/hulls/warden.tres" id="hull"]
 [ext_resource type="Resource" path="res://data/ai/ai_warden_guard.tres" id="ai"]
@@ -30,19 +31,25 @@ item = ExtResource("w_pulse")
 rarity = 0
 slot = &"Turret_B"
 
+[sub_resource type="Resource" id="P4"]
+script = ExtResource("2_spec")
+item = ExtResource("f_strike")
+rarity = 0
+slot = &"Bay"
+
 [sub_resource type="Resource" id="Phase2"]
 script = ExtResource("3_phase")
 hull_threshold = 0.5
 banner = "THE WARDEN OVERCLOCKS"
 ai_profile = ExtResource("ai2")
-added_items = Array[ExtResource("2_spec")]([SubResource("P1"), SubResource("P3")])
+added_items = Array[ExtResource("2_spec")]([SubResource("P1"), SubResource("P3"), SubResource("P4")])
 refill_shield = true
 
 [resource]
 script = ExtResource("1_enemy")
 id = &"enemy_warden"
 display_name = "The Warden"
-description = "A heavy guardian. At half hull it overclocks: shields restore, a pulse laser and a missile pod come online, and it charges."
+description = "A heavy guardian. At half hull it overclocks: shields restore, a pulse laser, a missile pod and a bomber bay come online, and it charges."
 hull = ExtResource("hull")
 loadout = Array[ExtResource("2_spec")]([SubResource("S1")])
 ai_profile = ExtResource("ai")

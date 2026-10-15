@@ -14,6 +14,7 @@ An explicit Inspector field always wins over a file found by name.
 | `models/hulls/` | ship hulls | `<hull_id>.glb` + `<hull_id>_model.tscn` |
 | `models/weapons/` | turret barrels | `<weapon_id>_barrel.tscn` or `.glb` |
 | `models/projectiles/` | bolts, slugs, missiles | `<projectile_id>.tscn` or `.glb` |
+| `models/fighters/` | launched fighters (facing -Z) | `<bay_id>_fighter.tscn` or `.glb` |
 | `icons/items/` | inventory icons | `<item_id>.png` |
 | `icons/hulls/` | hull portraits (no screen shows them yet) | `<hull_id>.png` |
 | `ui/theme/` | `game_theme.tres`, the project-wide UI theme | |
@@ -34,6 +35,7 @@ An explicit Inspector field always wins over a file found by name.
 | `WeaponData.barrel_scene` | `models/weapons/<id>_barrel` | coloured box barrel |
 | `WeaponData.fire_sound` | `audio/sfx/<id>_fire` | silent |
 | `ProjectileData.visual_scene` | `models/projectiles/<id>` | generated bolt/slug/capsule |
+| (fighter model, no field) | `models/fighters/<bay_id>_fighter` | small glowing arrowhead |
 | `ProjectileData.impact_scene` | `vfx/scenes/<id>_impact` | expanding ring (blasts only) |
 | `ProjectileData.impact_sound` | `audio/sfx/<id>_impact` | silent |
 | UI look | `ui/theme/game_theme.tres` (set in Project Settings) | Godot default theme |

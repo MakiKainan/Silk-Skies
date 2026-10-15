@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_proj")
 id = &"railgun_slug"
-damage = 60.0
+damage = 165.0
 damage_type = 1
 speed = 130.0
 lifetime = 0.8

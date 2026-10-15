@@ -15,7 +15,7 @@
 script = ExtResource("2_spec")
 item = ExtResource("w_auto")
 rarity = 0
-slot = &"Turret_B"
+slot = &"Turret_A"
 
 [resource]
 script = ExtResource("1_enemy")

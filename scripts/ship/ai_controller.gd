@@ -4,8 +4,15 @@ extends Node
 ## Hard Burn). Add as a child of the Ship. All behaviour comes from the AIProfile.
 ##
 ## It circles its target at the profile's preferred range, sees the target a moment late, holds
-## the manual and lock-on triggers when a weapon can actually shoot, leads and mis-aims its shots,
-## and (if the profile allows) Hard Burns away from incoming projectiles. Auto weapons need no help.
+## each fire group's trigger when a weapon in it can actually shoot, lets go of weapons that are
+## about to overheat, launches its fighter bays once the fight is close, leads and mis-aims its shots, and (if the profile allows) Hard Burns away
+## from incoming projectiles.
+
+## Heat at which the AI lets go of a weapon, and the heat it waits for before using it again.
+const VENT_AT := 0.85
+const VENT_UNTIL := 0.3
+## Fighter bays launch when the target is within this multiple of the preferred range.
+const BAY_LAUNCH_RANGE := 1.2
 
 var profile: AIProfile
 ## Off while a duel is being introduced; the ship just sits there.
@@ -20,6 +27,8 @@ var _perceived_vel: Vector3 = Vector3.ZERO
 var _has_perception: bool = false
 var _aim_error: float = 0.0  # radians, re-rolled after each shot
 var _watched_weapon: WeaponController
+## Weapons the AI is letting cool down (WeaponController -> true).
+var _venting: Dictionary = {}
 
 
 func _ready() -> void:
@@ -60,6 +69,7 @@ func _physics_process(delta: float) -> void:
 	_ship.set_turn(command.turn)
 
 	_handle_weapons(target)
+	_handle_bays(target)
 	if profile.dodge_burn:
 		_try_dodge()
 
@@ -67,8 +77,7 @@ func _physics_process(delta: float) -> void:
 func _idle() -> void:
 	_ship.set_throttle(0.0)
 	_ship.set_turn(0.0)
-	_ship.set_trigger(WeaponData.Targeting.MANUAL, false)
-	_ship.set_trigger(WeaponData.Targeting.LOCK_ON, false)
+	_ship.set_all_triggers(false)
 
 
 func _pick_target() -> Ship:
@@ -95,31 +104,64 @@ func _perceive(target: Ship, delta: float) -> void:
 
 
 func _handle_weapons(target: Ship) -> void:
-	var manual_ready: WeaponController
-	var lock_wanted := false
+	var held := {WeaponData.FireGroup.PRIMARY: false, WeaponData.FireGroup.SECONDARY: false}
+	var lead_with: WeaponController  # The in-reach aimed weapon with the slowest shot.
+	var lock_group := -1
 	var lock_complete := false
 	for controller in _ship.weapons():
 		if not controller.weapon_in_reach(target, profile.fire_range_fraction):
 			continue
-		if controller.weapon.targeting == WeaponData.Targeting.MANUAL and manual_ready == null:
-			manual_ready = controller
-		elif controller.weapon.targeting == WeaponData.Targeting.LOCK_ON:
-			lock_wanted = true
+		if controller.weapon.targeting == WeaponData.Targeting.LOCK_ON:
+			lock_group = controller.fire_group()
 			if controller.lock_target != null and controller.lock_progress >= controller.weapon.lock_time:
 				lock_complete = true
+			continue
+		if _is_venting(controller):
+			continue
+		held[controller.fire_group()] = true
+		if lead_with == null or controller.projectile_speed() < lead_with.projectile_speed():
+			lead_with = controller
 
-	_ship.set_trigger(WeaponData.Targeting.MANUAL, manual_ready != null)
-	# Lock-on fires when the trigger is released, so let go once the lock is made.
-	_ship.set_trigger(WeaponData.Targeting.LOCK_ON, lock_wanted and not lock_complete)
-	if manual_ready != null:
+	if lock_group >= 0:
+		# Lock-on fires when the trigger is released, so let go once the lock is made (that also
+		# drops any charge sharing the button: the salvo matters more).
+		held[lock_group] = not lock_complete
+	for group: WeaponData.FireGroup in held:
+		_ship.set_trigger(group, held[group])
+	if lead_with != null and lock_group < 0:
 		# Lead the target, then miss by this shot's error.
-		var muzzle := manual_ready.muzzle_position()
-		var direction := WeaponController.intercept_direction(muzzle, _perceived_pos, _perceived_vel, manual_ready.projectile_speed())
+		var muzzle := lead_with.muzzle_position()
+		var estimate := _estimated_position()
+		var direction := AutoAim.intercept_direction(muzzle, estimate, _perceived_vel, lead_with.projectile_speed())
 		direction = direction.rotated(Vector3.UP, _aim_error)
-		_ship.aim_at(muzzle + direction * maxf(muzzle.distance_to(_perceived_pos), 1.0))
-		_watch_for_shots(manual_ready)
+		_ship.aim_at(muzzle + direction * maxf(muzzle.distance_to(estimate), 1.0))
+		_watch_for_shots(lead_with)
 	else:
 		_ship.aim_at(target.global_position)  # Lock-on needs the cursor on the target.
+
+
+## Where the AI thinks the target is right now. The smoothed picture trails a steady target by
+## about velocity * reaction_time, so it projects that much forward: it tracks straight runs well
+## and is fooled for a moment by every turn or Hard Burn.
+func _estimated_position() -> Vector3:
+	return _perceived_pos + _perceived_vel * profile.reaction_time
+
+
+## Hysteresis: stop firing a weapon at VENT_AT heat (or overheated), resume at VENT_UNTIL.
+func _is_venting(controller: WeaponController) -> bool:
+	if controller.overheated or controller.heat >= VENT_AT:
+		_venting[controller] = true
+	elif _venting.get(controller, false) and controller.heat <= VENT_UNTIL:
+		_venting.erase(controller)
+	return _venting.get(controller, false)
+
+
+## Launches every ready fighter bay once the target is within reach of the fight.
+func _handle_bays(target: Ship) -> void:
+	if _ship.global_position.distance_to(target.global_position) > profile.preferred_range * BAY_LAUNCH_RANGE:
+		return
+	for bay in _ship.bays():
+		bay.launch()
 
 
 ## Re-roll the aiming error each time the manual weapon fires.

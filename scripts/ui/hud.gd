@@ -5,9 +5,8 @@ extends CanvasLayer
 ## the hull name and the shield/hull bars; weapon cooldowns live on the ActionBar instead.
 
 const MODE_NAMES := {
-	WeaponData.Targeting.AUTO: "auto",
-	WeaponData.Targeting.MANUAL: "manual LMB",
-	WeaponData.Targeting.LOCK_ON: "lock RMB",
+	WeaponData.Targeting.AIMED: "aimed",
+	WeaponData.Targeting.LOCK_ON: "lock",
 }
 
 ## Set before adding the HUD to the tree. Compact drops the controls help, the speed and Hard Burn
@@ -22,8 +21,10 @@ var _shield_bar: Range
 var _hull_bar: Range
 var _health_label: Label
 var _weapon_box: VBoxContainer
-var _weapon_rows: Array[Dictionary] = []  # {controller, label, bar}
+var _weapon_rows: Array[Dictionary] = []  # {controller, label, bar, heat (or null)}
 var _banner: Label
+## Flashes while an enemy is locking missiles onto the tracked ship.
+var lock_warning: Label
 var _help: Label
 
 
@@ -51,7 +52,7 @@ func _ready() -> void:
 	_box.add_child(_weapon_box)
 
 	_help = _make_label()
-	_help.text = "\nW/S thrust   A/D steer   Shift = Hard Burn (hold W/A/S/D to aim it)\nmouse aims   LMB manual weapons   RMB hold on enemy = lock, release = fire\nI refit & inventory   1/2/3 hull   B bot   N dummy   X clear   R reset   F1 tuning   F2 sandbox\n[ ] time scale   \\ reset time   wheel zoom"
+	_help.text = "\nW/S thrust   A/D steer   Shift = Hard Burn (hold W/A/S/D to aim it)\nmouse aims   LMB / RMB fire their weapon groups   RMB on enemy = missile lock, release = fire\nQ/E/R fighters   I refit (right-click a weapon: switch button)   1/2/3 hull   B bot   N dummy   X clear\nR revive (when dead)   F1 tuning   F2 sandbox   [ ] time scale   \\ reset time   wheel zoom"
 	_help.modulate = Color(1.0, 1.0, 1.0, 0.65)
 	_help.visible = not compact
 	_box.add_child(_help)
@@ -66,6 +67,18 @@ func _ready() -> void:
 	_banner.visible = false
 	add_child(_banner)
 
+	lock_warning = Label.new()
+	lock_warning.text = "MISSILE LOCK"
+	lock_warning.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	lock_warning.position = Vector2(-110.0, 64.0)
+	lock_warning.add_theme_font_size_override(&"font_size", 28)
+	lock_warning.add_theme_color_override(&"font_color", Color(1.0, 0.25, 0.2))
+	lock_warning.add_theme_color_override(&"font_outline_color", Color.BLACK)
+	lock_warning.add_theme_constant_override(&"outline_size", 8)
+	lock_warning.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lock_warning.visible = false
+	add_child(lock_warning)
+
 
 func track(ship: Ship) -> void:
 	_ship = ship
@@ -73,6 +86,15 @@ func track(ship: Ship) -> void:
 		ship.loadout_changed.connect(_rebuild_weapons)
 	# Weapon controllers appear a frame after equip() frees the old ones.
 	_rebuild_weapons.call_deferred()
+
+
+## True while any enemy weapon is building a lock on [param ship].
+static func is_being_locked(ship: Ship) -> bool:
+	for enemy in ship.enemies():
+		for controller in enemy.weapons():
+			if controller.lock_target == ship:
+				return true
+	return false
 
 
 ## Replaces the key-help text under the bars.
@@ -88,6 +110,10 @@ func show_banner(text: String) -> void:
 func _process(_delta: float) -> void:
 	if _ship == null or _ship.hull == null:
 		return
+	var locked_on := is_being_locked(_ship)
+	lock_warning.visible = locked_on
+	if locked_on:
+		lock_warning.modulate.a = 0.55 + 0.45 * absf(sin(Time.get_ticks_msec() * 0.012))
 	if compact:
 		_info.text = _ship.hull.display_name
 	else:
@@ -116,7 +142,9 @@ func _process(_delta: float) -> void:
 		if not is_instance_valid(controller):
 			continue
 		(row.bar as Range).value = controller.ready_fraction()
-		(row.label as Label).text = "%s [%s] %s" % [controller.weapon.display_name, MODE_NAMES[controller.weapon.targeting], controller.status_text()]
+		if row.heat != null:
+			(row.heat as Range).value = controller.heat_fraction()
+		(row.label as Label).text = "%s [%s %s] %s" % [controller.weapon.display_name, MODE_NAMES[controller.weapon.targeting], WeaponData.group_key(controller.fire_group()), controller.status_text()]
 
 
 func _rebuild_weapons() -> void:
@@ -134,8 +162,12 @@ func _rebuild_weapons() -> void:
 		spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_weapon_box.add_child(label)
 		_weapon_box.add_child(_bar_row(UiArt.damage_icon(type), Damage.TYPE_COLORS[type], bar))
+		var heat_bar: Range = null
+		if controller.weapon.heat_per_shot > 0.0:
+			heat_bar = _make_bar(HardpointMount.HEAT_COLOR, 5.0)
+			_weapon_box.add_child(heat_bar)
 		_weapon_box.add_child(spacer)
-		_weapon_rows.append({"controller": controller, "label": label, "bar": bar})
+		_weapon_rows.append({"controller": controller, "label": label, "bar": bar, "heat": heat_bar})
 
 
 func _make_label() -> Label:

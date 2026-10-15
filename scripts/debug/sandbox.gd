@@ -73,6 +73,12 @@ func _ready() -> void:
 	player.add_child(PlayerInput.new())
 	_camera_rig.target = player
 	_camera_rig.snap_to_target()
+	var hit_feel := HitFeel.new()
+	add_child(hit_feel)
+	hit_feel.setup(_camera_rig, player)
+	var threat_arrows := ThreatIndicators.new()
+	add_child(threat_arrows)
+	threat_arrows.track(player)
 
 	_hud = Hud.new()
 	add_child(_hud)
@@ -130,7 +136,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_X:
 			clear_enemies()
 		KEY_R:
-			revive_player()
+			if not player.is_alive():  # While alive, R is the third active (PlayerInput).
+				revive_player()
 		KEY_BRACKETLEFT:
 			Engine.time_scale = maxf(Engine.time_scale * 0.5, MIN_TIME_SCALE)
 		KEY_BRACKETRIGHT:

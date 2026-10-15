@@ -2,15 +2,10 @@ class_name ActionBar
 extends CanvasLayer
 ## The bottom bar of a real run: Hard Burn | weapons | fighter bays | techmods | crew, one
 ## ActionCell each with its own cooldown sweep. It follows the tracked ship's loadout and
-## rebuilds when it changes. Fighter, crew and techmod actives have no runtime yet, so their
-## cells are dimmed and take no fraction; give an ActionCell a `fraction` callable when they do.
+## rebuilds when it changes. Fighter bays launch on their Q/E/R key; crew and techmod actives have
+## no runtime yet, so their cells are dimmed and take no fraction.
 
 const KEYS_FOR_ACTIVES: PackedStringArray = ["Q", "E", "R"]
-const WEAPON_KEYS := {
-	WeaponData.Targeting.AUTO: "AUTO",
-	WeaponData.Targeting.MANUAL: "LMB",
-	WeaponData.Targeting.LOCK_ON: "RMB",
-}
 const BURN_COLOR := Color(0.9, 0.8, 0.3)
 const GROUP_GAP := 18.0
 const BOTTOM_MARGIN := 14.0
@@ -68,7 +63,7 @@ func _rebuild() -> void:
 	for item in _ship.loadout.equipped():
 		var data := item.data()
 		if data is FighterBayData:
-			bays.append(_item_cell(item))
+			bays.append(_bay_cell(item))
 		elif data is TechmodData:
 			techmods.append(_item_cell(item))
 		elif data is CrewData:
@@ -111,9 +106,27 @@ func _burn_cell() -> ActionCell:
 func _weapon_cell(controller: WeaponController) -> ActionCell:
 	var weapon := controller.weapon
 	var cell := _item_cell(controller.instance, weapon)
-	cell.key_text = WEAPON_KEYS[weapon.targeting]
+	cell.key_text = WeaponData.group_key(controller.fire_group())
 	cell.corner_icon = UiArt.damage_icon(weapon.projectile.damage_type)
 	cell.corner_tint = Damage.TYPE_COLORS[weapon.projectile.damage_type]
+	cell.fraction = func() -> float: return controller.ready_fraction() if _alive(controller) else 1.0
+	cell.status = func() -> String: return controller.status_text() if _alive(controller) else "ready"
+	cell.seconds = func() -> float: return controller.overheat_left if _alive(controller) and controller.overheated else (controller.cooldown_left if _alive(controller) else 0.0)
+	if weapon.heat_per_shot > 0.0:
+		cell.heat = func() -> float: return controller.heat_fraction() if _alive(controller) else 0.0
+	return cell
+
+
+func _bay_cell(item: ItemInstance) -> ActionCell:
+	var cell := _item_cell(item)
+	var controller: FighterBayController
+	for bay in _ship.bays():
+		if bay.instance == item:
+			controller = bay
+	if controller == null:
+		return cell
+	cell.dimmed = false
+	cell.note = ""
 	cell.fraction = func() -> float: return controller.ready_fraction() if _alive(controller) else 1.0
 	cell.status = func() -> String: return controller.status_text() if _alive(controller) else "ready"
 	cell.seconds = func() -> float: return controller.cooldown_left if _alive(controller) else 0.0
@@ -142,15 +155,15 @@ func _has_active(data: ItemData) -> bool:
 	return data is FighterBayData or data.active_name != ""
 
 
-## Q/E/R go to the first three dimmed (inert active) cells, in bar order.
+## Q/E/R label the first three actives, in the order Ship.activate() uses.
 func _assign_active_keys(groups: Array[Array]) -> void:
-	var next := 0
+	var actives := _ship.active_items()
 	for group in groups:
 		for cell: ActionCell in group:
-			if cell.dimmed and next < KEYS_FOR_ACTIVES.size():
-				cell.key_text = KEYS_FOR_ACTIVES[next]
-				next += 1
+			var index := actives.find(cell.item) if cell.item != null else -1
+			if index >= 0 and index < KEYS_FOR_ACTIVES.size():
+				cell.key_text = KEYS_FOR_ACTIVES[index]
 
 
-func _alive(controller: WeaponController) -> bool:
+func _alive(controller: Node) -> bool:
 	return is_instance_valid(controller) and not controller.is_queued_for_deletion()

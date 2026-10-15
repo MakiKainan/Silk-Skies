@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_proj")
 id = &"autocannon_round"
-damage = 4.0
+damage = 11.0
 damage_type = 1
 speed = 70.0
 lifetime = 0.7

@@ -73,6 +73,7 @@ func _ready() -> void:
 	box.add_child(_toggle("God mode (player)", func(on: bool) -> void: _sandbox.set_god_mode(on)))
 	box.add_child(_toggle("Bots fire", func(on: bool) -> void: _sandbox.set_bots_fire(on), true))
 	box.add_child(_toggle("Show firing arcs", func(on: bool) -> void: _sandbox.set_show_arcs(on)))
+	box.add_child(_toggle("Enemy aim telegraphs", func(on: bool) -> void: AimTelegraph.enemy_telegraphs_enabled = on, AimTelegraph.enemy_telegraphs_enabled))
 
 
 func bind(sandbox: Node) -> void:

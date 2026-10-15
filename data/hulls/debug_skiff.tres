@@ -34,6 +34,6 @@ burn_cooldown = 2.0
 max_hull = 150.0
 max_shield = 60.0
 shield_regen = 6.0
-shield_delay = 3.0
+shield_delay = 2.2
 armor = 1.0
 hardpoints = Array[ExtResource("2_hp")]([SubResource("HP_turret_a"), SubResource("HP_techmod")])

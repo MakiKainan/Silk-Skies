@@ -2,7 +2,8 @@ class_name ItemSlot
 extends PanelContainer
 ## One cell in the refit screen: a hardpoint slot, a cargo cell, or the discard bin.
 ## Drag an item off it and drop it on another cell; cells light up green when the dragged
-## item fits and dim when it can't go there. The rules live in ShipLoadout.
+## item fits and dim when it can't go there. Right-click a weapon to move it to the other mouse
+## button (fire group). The rules live in ShipLoadout.
 
 const EMPTY_FILL := Color(0.09, 0.1, 0.14)
 
@@ -84,10 +85,27 @@ func refresh() -> void:
 		_icon.visible = true
 		_badge.visible = false
 	_tag.text = Rarity.display_name(current.rarity)
+	if data is WeaponData:
+		_tag.text += "  " + WeaponData.group_key(current.fire_group_of())
 	_tag.modulate = Rarity.color(current.rarity)
 	var category := ItemVisuals.category_color(data.slot_type())
 	add_theme_stylebox_override(&"panel", ItemVisuals.slot_style(Rarity.color(current.rarity), category.darkened(0.6)))
 	tooltip_text = data.display_name  # Any non-empty text triggers _make_custom_tooltip.
+
+
+func _gui_input(event: InputEvent) -> void:
+	var click := event as InputEventMouseButton
+	if click != null and click.pressed and click.button_index == MOUSE_BUTTON_RIGHT:
+		toggle_fire_group()
+		accept_event()
+
+
+## Right-click: moves the weapon in this cell to the other mouse button. False if it can't.
+func toggle_fire_group() -> bool:
+	if is_trash or not loadout.toggle_fire_group(kind, index):
+		return false
+	refresh()
+	return true
 
 
 ## Faint glyph in place of the badge (empty slot, discard bin). No-op without art.

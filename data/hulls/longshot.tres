@@ -38,6 +38,6 @@ burn_cooldown = 2.5
 max_hull = 300
 max_shield = 160
 shield_regen = 8
-shield_delay = 3.5
+shield_delay = 2.5
 armor = 1
 hardpoints = Array[ExtResource("2_hp")]([SubResource("HP_a"), SubResource("HP_b")])

@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_proj")
 id = &"missile"
-damage = 14.0
+damage = 30.0
 damage_type = 2
 speed = 26.0
 lifetime = 4.0

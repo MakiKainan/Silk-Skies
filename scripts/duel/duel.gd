@@ -68,6 +68,12 @@ func _ready() -> void:
 
 	_camera_rig.target = player
 	_camera_rig.snap_to_target()
+	var hit_feel := HitFeel.new()
+	add_child(hit_feel)
+	hit_feel.setup(_camera_rig, player)
+	var threat_arrows := ThreatIndicators.new()
+	add_child(threat_arrows)
+	threat_arrows.track(player)
 
 	var original := RunState.is_original()
 	_hud = Hud.new()
@@ -79,7 +85,7 @@ func _ready() -> void:
 		add_child(_action_bar)
 		_action_bar.track(player)
 	else:
-		_hud.set_help("W/S thrust   A/D steer   Shift = Hard Burn (hold W/A/S/D to aim it)\nmouse aims   LMB manual weapons   RMB hold on enemy = lock, release = fire\nI refit")
+		_hud.set_help("W/S thrust   A/D steer   Shift = Hard Burn (hold W/A/S/D to aim it)\nmouse aims   LMB / RMB fire their weapon groups   RMB on enemy = missile lock, release = fire\nQ / E / R launch fighters   I refit (right-click a weapon to switch its button)")
 
 	_inventory = InventoryScreen.new()
 	add_child(_inventory)

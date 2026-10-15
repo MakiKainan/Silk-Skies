@@ -1,12 +1,13 @@
 class_name Projectile
 extends Node3D
 ## A bullet, bolt or missile. Flies on the XZ plane and each physics tick ray-casts the
-## segment it just travelled, so fast slugs can't tunnel through ships. Hits enemy-team ships,
-## is stopped by world geometry (asteroids), can pierce, can home, can explode.
+## segment it just travelled, so fast slugs can't tunnel through ships. Hits enemy-team ships and
+## fighters, is stopped by world geometry (asteroids), can pierce, can home, can explode. Homing
+## shots (missiles) can be shot down by interceptor fighters.
 
 const GROUP := &"projectiles"
-## Physics layers 1 (ships) and 2 (world).
-const HIT_MASK := 3
+## Physics layers 1 (ships), 2 (world) and 4 (fighters).
+const HIT_MASK := 1 | 2 | Fighter.LAYER
 
 var data: ProjectileData
 var direction: Vector3 = Vector3.FORWARD
@@ -44,8 +45,31 @@ static func spawn(parent: Node, p_data: ProjectileData, source: Ship, origin: Ve
 	return projectile
 
 
+## Where shots and fighters are parented: the "projectile_root" group's node if the scene has
+## one, else the current scene (or the root, in tests).
+static func default_parent(from: Node) -> Node:
+	var tree := from.get_tree()
+	var root := tree.get_first_node_in_group(&"projectile_root")
+	if root != null:
+		return root
+	return tree.current_scene if tree.current_scene != null else tree.root
+
+
 func team() -> StringName:
 	return _team
+
+
+## Homing shots (missiles) can be shot down by interceptors.
+func is_interceptable() -> bool:
+	return data.homing_deg_per_sec > 0.0 and not is_queued_for_deletion()
+
+
+## Shot down mid-flight: a small puff, no damage.
+func intercept() -> void:
+	if is_queued_for_deletion():
+		return
+	Vfx.ring(get_parent(), global_position, 1.2, data.color, 0.25)
+	queue_free()
 
 
 func current_speed() -> float:
@@ -83,6 +107,21 @@ func _physics_process(delta: float) -> void:
 				_explode(point)
 				return
 			_damage(ship, point)
+			_impact(point)
+			if pierce_left > 0:
+				pierce_left -= 1
+				continue
+			queue_free()
+			return
+		if collider is Fighter:
+			var fighter := collider as Fighter
+			_excluded.append(fighter.get_rid())
+			if fighter.team == _team or not fighter.is_alive():
+				continue
+			if data.blast_radius > 0.0:
+				_explode(point)
+				return
+			fighter.take_damage(_damage_value)
 			_impact(point)
 			if pierce_left > 0:
 				pierce_left -= 1
@@ -128,6 +167,10 @@ func _explode(point: Vector3) -> void:
 		var reach := data.blast_radius + (ship.hull.collision_radius if ship.hull != null else 0.0)
 		if offset.length() <= reach:
 			_damage(ship, ship.global_position)
+	for node in get_tree().get_nodes_in_group(Fighter.GROUP):
+		var fighter := node as Fighter
+		if fighter.team != _team and fighter.is_alive() and AutoAim.flat(fighter.global_position - point).length() <= data.blast_radius + Fighter.RADIUS:
+			fighter.take_damage(_damage_value)
 	_impact(point)
 	queue_free()
 

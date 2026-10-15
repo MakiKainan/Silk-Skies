@@ -14,6 +14,6 @@ orbit_flip_min = 2.5
 orbit_flip_max = 5.0
 max_throttle = 1.0
 reaction_time = 0.3
-aim_error_deg = 4.0
+aim_error_deg = 3.5
 fire_range_fraction = 1.0
 dodge_burn = true

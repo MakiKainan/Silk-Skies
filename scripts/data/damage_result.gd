@@ -13,6 +13,10 @@ var hull_damage: float = 0.0
 var shield_left: float = 0.0
 var hull_left: float = 0.0
 var destroyed: bool = false
+## This hit took the shield from up to 0.
+var shield_broken: bool = false
+## This hit landed while the hull was exposed by an earlier shield break.
+var exposed: bool = false
 
 
 func total_dealt() -> float:

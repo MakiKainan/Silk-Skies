@@ -11,6 +11,9 @@ const CELL_SIZE := 64.0
 const SWEEP_COLOR := Color(0.0, 0.0, 0.05, 0.62)
 const RING_COLOR := Color(1.0, 0.85, 0.3)
 const DIMMED := Color(0.62, 0.62, 0.68, 0.8)
+const HEAT_COOL_COLOR := Color(1.0, 0.65, 0.2)
+const HEAT_HOT_COLOR := Color(1.0, 0.15, 0.05)
+const HEAT_STRIP := 5.0
 
 ## Icon art; without it the [member badge] letters stand in.
 var icon: Texture2D
@@ -35,11 +38,14 @@ var fraction: Callable = Callable()
 var status: Callable = Callable()
 ## Returns the seconds left on the cooldown (0 = none).
 var seconds: Callable = Callable()
+## Returns 0..1 weapon heat, drawn as a strip along the top edge. Invalid = no strip.
+var heat: Callable = Callable()
 
 var _sweep: Control
 var _seconds_label: Label
 var _shown_fraction: float = 1.0
 var _shown_ring: bool = false
+var _shown_heat: float = 0.0
 
 
 func _ready() -> void:
@@ -102,15 +108,25 @@ func _poll() -> void:
 	var building := word == "charging" or word == "locking"
 	var left := float(seconds.call()) if seconds.is_valid() else 0.0
 	_seconds_label.text = "%.1f" % left if left > 0.05 and not building else ""
-	if not is_equal_approx(ready_fraction, _shown_fraction) or building != _shown_ring:
+	var hot := clampf(float(heat.call()), 0.0, 1.0) if heat.is_valid() else 0.0
+	if not is_equal_approx(ready_fraction, _shown_fraction) or building != _shown_ring or not is_equal_approx(hot, _shown_heat):
 		_shown_fraction = ready_fraction
 		_shown_ring = building
+		_shown_heat = hot
 		_sweep.queue_redraw()
+
+
+## The heat the cell is currently showing (0..1).
+func shown_heat() -> float:
+	return _shown_heat
 
 
 func _draw_sweep() -> void:
 	var size_now := _sweep.size
 	var center := size_now * 0.5
+	if _shown_heat > 0.0:
+		var heat_color := HEAT_COOL_COLOR.lerp(HEAT_HOT_COLOR, _shown_heat)
+		_sweep.draw_rect(Rect2(0.0, 0.0, size_now.x * _shown_heat, HEAT_STRIP), heat_color)
 	if _shown_ring:
 		# A charge or a lock: a bright ring fills clockwise as it builds.
 		_sweep.draw_arc(center, minf(size_now.x, size_now.y) * 0.5 - 2.0, -PI * 0.5, -PI * 0.5 + TAU * _shown_fraction, 40, RING_COLOR, 3.0, true)
