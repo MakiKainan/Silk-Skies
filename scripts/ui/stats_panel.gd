@@ -40,7 +40,7 @@ func refresh() -> void:
 	for controller in controllers:
 		var rarity_color := Rarity.color(controller.instance.rarity) if controller.instance != null else Color.WHITE
 		var stats := controller.stats
-		_add_text("%s   DPS %.1f" % [controller.weapon.display_name, WeaponStats.dps(controller.weapon, stats)], rarity_color)
+		_add_text("%s   DPS %.1f" % [controller.weapon.full_name(), WeaponStats.dps(controller.weapon, stats)], rarity_color)
 		_add_text("   dmg %s   rate %s   range %s" % [
 			StatInfo.format_value(Stats.DAMAGE, stats[Stats.DAMAGE]),
 			StatInfo.format_value(Stats.FIRE_RATE, stats[Stats.FIRE_RATE]),

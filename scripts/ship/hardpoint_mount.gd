@@ -3,7 +3,8 @@ extends Node3D
 ## The runtime end of a HardpointData: lives on the hull model's marker and shows what is
 ## mounted there. Empty, it's a coloured cube per hardpoint type. With a weapon, it grows a
 ## barrel that swings toward the aim direction inside the arc, glows while charging, and can
-## draw its firing arc as a flat wedge.
+## draw its firing arc as a flat wedge: always (the debug "show arcs" switch) or as a short
+## flash (flash_cone), which the player's weapons use when fired, red when aimed outside it.
 
 const TYPE_COLORS := {
 	HardpointData.Type.TURRET: Color(1.0, 0.55, 0.15),
@@ -15,6 +16,12 @@ const TYPE_COLORS := {
 const BARREL_TURN_DEG := 540.0
 ## Barrel tint as a weapon nears overheating.
 const HEAT_COLOR := Color(1.0, 0.22, 0.08)
+## The flashed cone: seconds fully shown, then seconds fading out.
+const FLASH_HOLD := 0.3
+const FLASH_FADE := 0.2
+const FLASH_RADIUS := 12.0
+const FLASH_COLOR := Color(1.0, 0.8, 0.45, 0.2)
+const FLASH_BLOCKED_COLOR := Color(1.0, 0.18, 0.12, 0.35)
 
 var data: HardpointData
 var weapon_controller: WeaponController
@@ -25,6 +32,10 @@ var _barrel_pivot: Node3D
 var _barrel_material: StandardMaterial3D
 var _barrel_base_color := Color.WHITE
 var _arc_wedge: MeshInstance3D
+var _flash_wedge: MeshInstance3D
+var _flash_material: StandardMaterial3D
+var _flash_color := FLASH_COLOR
+var _flash_left: float = 0.0
 
 
 func setup(p_data: HardpointData) -> void:
@@ -94,6 +105,43 @@ func set_arc_visible(on: bool) -> void:
 		_build_arc()
 
 
+## Shows this turret's firing cone for a moment (FLASH_HOLD, then a FLASH_FADE fade); red when
+## [param blocked] (the shot is aimed outside it). Calling it again restarts the flash.
+func flash_cone(blocked: bool = false) -> void:
+	if data == null or data.type != HardpointData.Type.TURRET:
+		return
+	if _flash_wedge == null:
+		_flash_material = _wedge_material(FLASH_COLOR)
+		_flash_wedge = _make_wedge(FLASH_RADIUS, _flash_material, "ConeFlash")
+	_flash_color = FLASH_BLOCKED_COLOR if blocked else FLASH_COLOR
+	_flash_left = FLASH_HOLD + FLASH_FADE
+	_flash_wedge.visible = true
+	_paint_flash()
+
+
+## True while a flash is on screen (and whether it is the red one).
+func is_cone_flashing() -> bool:
+	return _flash_left > 0.0
+
+
+func is_cone_blocked() -> bool:
+	return is_cone_flashing() and _flash_color == FLASH_BLOCKED_COLOR
+
+
+func _process(delta: float) -> void:
+	if _flash_left <= 0.0:
+		return
+	_flash_left = maxf(_flash_left - delta, 0.0)
+	_paint_flash()
+	if _flash_left <= 0.0:
+		_flash_wedge.visible = false
+
+
+func _paint_flash() -> void:
+	var fade := clampf(_flash_left / FLASH_FADE, 0.0, 1.0)
+	_flash_material.albedo_color = Color(_flash_color, _flash_color.a * fade)
+
+
 func _build_barrel(weapon: WeaponData) -> void:
 	_barrel_material = null
 	var barrel_scene := ArtLookup.barrel_scene(weapon)
@@ -128,7 +176,20 @@ func _build_barrel(weapon: WeaponData) -> void:
 
 
 func _build_arc() -> void:
-	var radius := 14.0
+	_arc_wedge = _make_wedge(14.0, _wedge_material(Color(TYPE_COLORS[data.type], 0.14)), "ArcWedge")
+
+
+func _wedge_material(color: Color) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	material.albedo_color = color
+	return material
+
+
+## A flat wedge of this hardpoint's arc, [param radius] long, lying just above the floor.
+func _make_wedge(radius: float, material: StandardMaterial3D, node_name: String) -> MeshInstance3D:
 	var half := deg_to_rad(data.arc_deg * 0.5)
 	var center := deg_to_rad(data.arc_center_deg)
 	var steps := maxi(int(data.arc_deg / 6.0), 3)
@@ -142,18 +203,14 @@ func _build_arc() -> void:
 		surface.add_vertex(Vector3(sin(a1) * radius, 0.0, -cos(a1) * radius))
 		surface.add_vertex(Vector3(sin(a0) * radius, 0.0, -cos(a0) * radius))
 	var mesh := surface.commit()
-	var material := StandardMaterial3D.new()
-	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	material.albedo_color = Color(TYPE_COLORS[data.type], 0.14)
 	mesh.surface_set_material(0, material)
-	_arc_wedge = MeshInstance3D.new()
-	_arc_wedge.name = "ArcWedge"
-	_arc_wedge.mesh = mesh
-	add_child(_arc_wedge)
-	_arc_wedge.global_position.y = 0.05
-	_arc_wedge.reset_physics_interpolation()
+	var wedge := MeshInstance3D.new()
+	wedge.name = node_name
+	wedge.mesh = mesh
+	add_child(wedge)
+	wedge.global_position.y = 0.05
+	wedge.reset_physics_interpolation()
+	return wedge
 
 
 func _clear_arc() -> void:

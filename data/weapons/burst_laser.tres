@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/weapon_data.gd" id="1_weapon"]
+[ext_resource type="Resource" path="res://data/projectiles/burst_bolt.tres" id="2_proj"]
+[ext_resource type="Resource" path="res://data/roll_pools/turret_pool.tres" id="3_pool"]
+
+[resource]
+script = ExtResource("1_weapon")
+id = &"burst_laser"
+display_name = "The Stutter"
+weapon_label = "Burst Laser"
+description = "A basic laser. Spits three slow energy bolts per pull, great against shields. Easy to read, easy to dodge."
+roll_pool = ExtResource("3_pool")
+size = 0
+targeting = 0
+projectile = ExtResource("2_proj")
+cooldown = 1.0
+shots_per_fire = 3
+burst_interval = 0.09
+charge_time = 0.0
+lock_time = 0.8
+lock_pick_radius = 6.0
+range = 38.0
+telegraph = 2

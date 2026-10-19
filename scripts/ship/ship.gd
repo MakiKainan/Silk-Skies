@@ -27,8 +27,15 @@ var team: StringName = TEAM_PLAYER
 var aim_point: Vector3 = Vector3.ZERO
 ## Sandbox/EMP hook: when false no weapon will fire.
 var weapons_enabled: bool = true
+## Human control: a charged weapon stays primed at full charge while its trigger is held and
+## fires when the trigger is released. Off, a charged weapon fires the moment it is full
+## (enemies and bots; the enemy aim-commit telegraph depends on that known moment).
+var release_to_fire: bool = false
 ## Enemies and dummies disappear when destroyed; the player persists so it can be revived.
 var free_on_death: bool = true
+## Flash a weapon's firing cone when its button is pressed, red while it is aimed outside the
+## cone. PlayerInput turns this on; AI ships don't need it.
+var flash_cones: bool = false
 var show_arcs: bool = false:
 	set(value):
 		show_arcs = value

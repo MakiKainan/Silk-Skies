@@ -7,7 +7,9 @@
 [resource]
 script = ExtResource("1_weapon")
 id = &"pulse_laser"
-display_name = "Pulse Laser"
+display_name = "Tempest"
+weapon_label = "Pulse Laser"
+min_rarity = 1
 description = "Rapid short energy bolts. Aimed; overheats if you never let go. Shreds shields, struggles against armor."
 roll_pool = ExtResource("3_pool")
 size = 0

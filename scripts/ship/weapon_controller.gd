@@ -46,6 +46,10 @@ var _burst_direction: Vector3 = Vector3.FORWARD
 var _burst_target: Ship
 var _lock_marker: MeshInstance3D
 var _since_fired: float = INF
+## Trigger state last tick, for the cone flash on a fresh press.
+var _flash_was_held: bool = false
+## Was the trigger held on the previous aimed step? (the release edge of a primed charge)
+var _was_held: bool = false
 
 
 func setup(p_weapon: WeaponData, p_hardpoint: HardpointData, p_ship: Ship, p_mount: HardpointMount, p_instance: ItemInstance = null) -> void:
@@ -197,6 +201,7 @@ func commits_aim() -> bool:
 
 func _physics_process(delta: float) -> void:
 	step(delta)
+	_update_cone_flash()
 	if mount != null:
 		mount.aim_barrel(aim_direction, charge_fraction(), delta, heat_fraction())
 	_update_lock_marker()
@@ -224,6 +229,20 @@ func step(delta: float) -> void:
 			_step_lock(delta)
 
 
+## Player weapons (Ship.flash_cones): a fresh press flashes the firing cone; holding the button
+## with the cursor outside the cone keeps it flashing red.
+func _update_cone_flash() -> void:
+	var held := is_trigger_held()
+	if ship != null and ship.flash_cones and mount != null and ship.is_alive():
+		var to_aim := _flat(ship.aim_point - muzzle_position())
+		var outside := to_aim.length_squared() > 0.01 and not in_arc(to_aim)
+		if held and outside:
+			mount.flash_cone(true)
+		elif held and not _flash_was_held:
+			mount.flash_cone(false)
+	_flash_was_held = held
+
+
 func _step_heat(delta: float) -> void:
 	_since_fired += delta
 	if overheated:
@@ -239,6 +258,8 @@ func _step_heat(delta: float) -> void:
 
 func _step_aimed(delta: float) -> void:
 	var held := is_trigger_held()
+	var was_held := _was_held
+	_was_held = held
 	var to_aim := _flat(ship.aim_point - muzzle_position())
 	var wanted := to_aim.normalized() if to_aim.length_squared() > 0.01 else _default_direction()
 	# An enemy at the end of its charge holds its line: the telegraph shows exactly where it goes.
@@ -249,15 +270,22 @@ func _step_aimed(delta: float) -> void:
 		if held and inside and is_ready():
 			_fire(direction, null)
 		return
-	# Charged weapon: build while held, in arc and off cooldown; letting go or leaving the arc cancels.
+	# Charged weapon: build while held, in arc and off cooldown; leaving the arc cancels. It fires
+	# on reaching full charge, or (release_to_fire) stays primed and fires when the trigger is
+	# let go; letting go before full cancels.
 	if held and inside and is_ready():
 		charge = minf(charge + delta, weapon.charge_time)
-		if charge >= weapon.charge_time:
+		if charge >= weapon.charge_time and not ship.release_to_fire:
 			charge = 0.0
 			aim_committed = false
 			_fire(direction, null)
 			return
 		aim_committed = commits_aim() and charge >= weapon.charge_time - AIM_COMMIT_SECONDS
+	elif ship.release_to_fire and was_held and not held and ship.weapons_enabled \
+			and inside and charge >= weapon.charge_time and is_ready():
+		charge = 0.0
+		aim_committed = false
+		_fire(direction, null)
 	else:
 		charge = 0.0
 		aim_committed = false
@@ -333,6 +361,7 @@ func _cancel() -> void:
 	lock_target = null
 	lock_progress = 0.0
 	_burst_left = 0
+	_was_held = false
 
 
 func _flat(v: Vector3) -> Vector3:

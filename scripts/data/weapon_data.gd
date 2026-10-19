@@ -4,13 +4,16 @@ extends ItemData
 ## Every weapon is fired by the player (or the AI) with a mouse button; auto-aim lives on fighters.
 
 ## AIMED fires toward the cursor while its button is held (charging first, if it has a
-## charge_time). LOCK_ON locks an enemy under the cursor while held and fires on release.
+## charge_time; the player's charged shot waits primed and fires on release, see
+## Ship.release_to_fire). LOCK_ON locks an enemy under the cursor while held and fires on release.
 enum Targeting { AIMED, LOCK_ON }
 ## Which mouse button fires it: PRIMARY = left, SECONDARY = right. Set per item in the refit screen.
 enum FireGroup { PRIMARY, SECONDARY }
 ## How an enemy telegraphs this weapon before it fires (see AimTelegraph).
 enum Telegraph { NONE, CHARGE_BEAM, TRACER, CONE, LOCK }
 
+## What kind of weapon this is ("Pulse Laser", "Cannon"); display_name is its own name.
+@export var weapon_label: String = ""
 ## The smallest turret hardpoint that can carry it. A Large hardpoint takes either size.
 @export var size: HardpointData.Size = HardpointData.Size.SMALL
 @export var targeting: Targeting = Targeting.AIMED
@@ -55,6 +58,10 @@ func slot_size() -> HardpointData.Size:
 
 func category_name() -> String:
 	return "Turret"
+
+
+func full_name() -> String:
+	return "%s (%s)" % [display_name, weapon_label] if weapon_label != "" else display_name
 
 
 ## The button this weapon uses when the item doesn't override it.

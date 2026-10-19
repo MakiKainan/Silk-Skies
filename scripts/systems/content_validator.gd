@@ -6,7 +6,7 @@ extends RefCounted
 ## Implemented: empty/duplicate ids, hull model scene + hardpoint markers, weapons,
 ## projectiles, and item basics (name, roll pool ranges, fighter bays and their fighters).
 ## Enemies: hull + AI present, loadout slots exist and items fit them, phase thresholds fall.
-## Acts: no empty or null encounters. Art (optional, but if present): scenes load with a
+## AI skills: sane scales and timings. Acts: no empty or null encounters. Art (optional, but if present): scenes load with a
 ## Node3D root, icons are square 64-512 px, files live under res://assets/. Added later: synergies.
 
 static func validate(resources: Array) -> PackedStringArray:
@@ -23,6 +23,8 @@ static func validate(resources: Array) -> PackedStringArray:
 			_check_projectile(res as ProjectileData, errors)
 		elif res is AIProfile:
 			_check_ai_profile(res as AIProfile, errors)
+		elif res is AISkill:
+			_check_ai_skill(res as AISkill, errors)
 		elif res is EnemyData:
 			_check_enemy(res as EnemyData, errors)
 		elif res is ActData:
@@ -101,6 +103,20 @@ static func _check_ai_profile(profile: AIProfile, errors: PackedStringArray) -> 
 		errors.append("%s: reaction_time must be positive" % where)
 
 
+## Enemies must not carry an item below its minimum rarity (it could never drop like that).
+static func _check_spec_rarity(spec: ItemSpec, where: String, errors: PackedStringArray) -> void:
+	if spec != null and spec.item != null and spec.rarity < spec.item.min_rarity:
+		errors.append("%s: %s is %s but its min_rarity is %s" % [where, spec.item.id, Rarity.display_name(spec.rarity), Rarity.display_name(spec.item.min_rarity)])
+
+
+static func _check_ai_skill(skill: AISkill, errors: PackedStringArray) -> void:
+	var where := _where(skill)
+	if skill.reaction_scale <= 0.0 or skill.aim_error_scale < 0.0:
+		errors.append("%s: reaction_scale must be positive and aim_error_scale not negative" % where)
+	if skill.lapse_every <= 0.0 or skill.lapse_duration < 0.0 or skill.dodge_delay < 0.0 or skill.heading_error_deg < 0.0:
+		errors.append("%s: lapse_every must be positive; lapse_duration, dodge_delay and heading_error_deg not negative" % where)
+
+
 ## An enemy needs a hull and AI, and every item it carries must name a real hardpoint it fits.
 static func _check_enemy(enemy: EnemyData, errors: PackedStringArray) -> void:
 	var where := _where(enemy)
@@ -131,6 +147,7 @@ static func _check_enemy(enemy: EnemyData, errors: PackedStringArray) -> void:
 
 
 static func _check_item_spec(spec: ItemSpec, hull: HullData, where: String, errors: PackedStringArray) -> void:
+	_check_spec_rarity(spec, where, errors)
 	if spec == null or spec.item == null:
 		errors.append("%s: loadout entry with no item" % where)
 		return

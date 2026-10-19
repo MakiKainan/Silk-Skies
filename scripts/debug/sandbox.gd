@@ -22,6 +22,8 @@ const DEFAULT_ACT_ID := &"slice_act"
 
 var hulls: Array[HullData] = []  # Hulls a ship can sail; the dummy hull is not one of them.
 var player: Ship
+## Skill (0 rookie .. 2 ace, see AIDifficulty) of the enemies "Spawn enemy" makes; F2 panel slider.
+var enemy_skill_level: float = 1.0
 
 var _dummy_hull: HullData
 var _enemies: Array[Ship] = []
@@ -179,7 +181,7 @@ func spawn_enemy(enemy: EnemyData) -> void:
 	if _enemies.size() >= MAX_ENEMIES:
 		return
 	var spot := _free_spot(24.0, 36.0)
-	var ship := EnemyFactory.spawn(_ships, enemy, spot, 0.0, _rng)
+	var ship := EnemyFactory.spawn(_ships, enemy, spot, 0.0, _rng, AIDifficulty.skill_at(enemy_skill_level, AIDifficulty.presets()))
 	ship.show_arcs = _show_arcs
 	_enemies.append(ship)
 	ship.tree_exiting.connect(_enemies.erase.bind(ship))
@@ -223,7 +225,7 @@ func spawn_bot() -> void:
 	var pick := 0
 	for index in hull.hardpoints.size():
 		if hull.hardpoints[index].type == HardpointData.Type.TURRET:
-			var id: StringName = &"pulse_laser" if pick % 2 == 0 else &"autocannon"
+			var id: StringName = &"burst_laser" if pick % 2 == 0 else &"cannon"
 			bot.equip(index, ContentDB.get_by_id(id) as WeaponData)
 			pick += 1
 	bot.weapons_enabled = _bots_fire

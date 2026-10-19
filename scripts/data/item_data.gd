@@ -5,6 +5,9 @@ extends Resource
 
 @export var id: StringName
 @export var display_name: String = ""
+## The lowest rarity this item ever drops at: rolls below it are raised to it, and loot only
+## offers it in slots that rolled at least this rarity (strong items stay rare finds).
+@export var min_rarity: Rarity.Type = Rarity.Type.COMMON
 @export_multiline var description: String = ""
 ## Stat lines a drop of this item can roll. Null = never rolls.
 @export var roll_pool: RollPool
@@ -30,3 +33,9 @@ func slot_size() -> HardpointData.Size:
 
 func category_name() -> String:
 	return "Item"
+
+
+## The item's name plus what kind of thing it is, e.g. "Tempest (Pulse Laser)". Plain name if
+## it has no kind label.
+func full_name() -> String:
+	return display_name

@@ -7,7 +7,9 @@
 [resource]
 script = ExtResource("1_weapon")
 id = &"autocannon"
-display_name = "Autocannon"
+display_name = "Fiery Vargas"
+weapon_label = "Autocannon"
+min_rarity = 1
 description = "A steady kinetic stream with slight spread. Aimed; overheats if you never let go. Punches through half of armor."
 roll_pool = ExtResource("3_pool")
 size = 0

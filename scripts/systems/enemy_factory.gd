@@ -7,8 +7,9 @@ const SHIP_SCENE := preload("res://scenes/ship/ship.tscn")
 
 
 ## Spawns the enemy under [param parent], facing [param yaw]. Rolls its items from [param rng],
-## so a seeded RNG gives the same enemy every time.
-static func spawn(parent: Node, enemy: EnemyData, position: Vector3, yaw: float, rng: RandomNumberGenerator) -> Ship:
+## so a seeded RNG gives the same enemy every time. [param skill] is how good a pilot it is
+## (see AIDifficulty); null flies the AI profile as authored.
+static func spawn(parent: Node, enemy: EnemyData, position: Vector3, yaw: float, rng: RandomNumberGenerator, skill: AISkill = null) -> Ship:
 	var ship := SHIP_SCENE.instantiate() as Ship
 	ship.team = Ship.TEAM_ENEMY
 	parent.add_child(ship)
@@ -20,7 +21,7 @@ static func spawn(parent: Node, enemy: EnemyData, position: Vector3, yaw: float,
 	var ai := AIController.new()
 	ai.name = "AIController"
 	ship.add_child(ai)
-	ai.setup(enemy.ai_profile, rng)
+	ai.setup(enemy.ai_profile, rng, skill)
 
 	if not enemy.phases.is_empty():
 		var phases := PhaseController.new()

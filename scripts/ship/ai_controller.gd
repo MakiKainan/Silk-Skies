@@ -1,12 +1,14 @@
 class_name AIController
 extends Node
 ## Controller: drives a Ship with the same commands the player uses (throttle, turn, aim, triggers,
-## Hard Burn). Add as a child of the Ship. All behaviour comes from the AIProfile.
+## Hard Burn). Add as a child of the Ship. How it fights comes from the AIProfile; how WELL it
+## fights comes from the AISkill (none = the raw profile, which plays like an ace).
 ##
 ## It circles its target at the profile's preferred range, sees the target a moment late, holds
 ## each fire group's trigger when a weapon in it can actually shoot, lets go of weapons that are
 ## about to overheat, launches its fighter bays once the fight is close, leads and mis-aims its shots, and (if the profile allows) Hard Burns away
-## from incoming projectiles.
+## from incoming projectiles. Skill makes it react later, under-lead, misread headings, zone out
+## for a moment now and then, and notice incoming shots late and only sometimes dodge them.
 
 ## Heat at which the AI lets go of a weapon, and the heat it waits for before using it again.
 const VENT_AT := 0.85
@@ -15,6 +17,8 @@ const VENT_UNTIL := 0.3
 const BAY_LAUNCH_RANGE := 1.2
 
 var profile: AIProfile
+## How good a pilot it is. Null plays the profile as authored (no lapses, perfect lead, always dodges).
+var skill: AISkill
 ## Off while a duel is being introduced; the ship just sits there.
 var enabled: bool = true
 var rng := RandomNumberGenerator.new()
@@ -26,6 +30,11 @@ var _perceived_pos: Vector3 = Vector3.ZERO
 var _perceived_vel: Vector3 = Vector3.ZERO
 var _has_perception: bool = false
 var _aim_error: float = 0.0  # radians, re-rolled after each shot
+var _heading_error: float = 0.0  # radians, re-rolled after each shot
+var _lapse_timer: float = 0.0
+var _lapse_left: float = 0.0
+## Incoming projectiles it has noticed: Projectile -> [seconds on course, will dodge it].
+var _threats: Dictionary = {}
 var _watched_weapon: WeaponController
 ## Weapons the AI is letting cool down (WeaponController -> true).
 var _venting: Dictionary = {}
@@ -37,12 +46,16 @@ func _ready() -> void:
 
 
 ## Sets (or changes) the profile. [param p_rng] seeds this controller's own random stream.
-func setup(p_profile: AIProfile, p_rng: RandomNumberGenerator = null) -> void:
+## [param p_skill] replaces the skill; null keeps the current one (a boss phase swaps only the profile).
+func setup(p_profile: AIProfile, p_rng: RandomNumberGenerator = null, p_skill: AISkill = null) -> void:
 	profile = p_profile
+	if p_skill != null:
+		skill = p_skill
 	if p_rng != null:
 		rng.seed = p_rng.randi()  # Own stream, so AI draws never shift the run's loot rolls.
 	_orbit_sign = 1.0 if rng.randf() < 0.5 else -1.0
 	_flip_timer = _next_flip_time()
+	_lapse_timer = _next_lapse_time()
 	_reroll_aim_error()
 
 
@@ -57,6 +70,7 @@ func _physics_process(delta: float) -> void:
 		_idle()
 		return
 
+	_step_attention(delta)
 	_perceive(target, delta)
 	_flip_timer -= delta
 	if _flip_timer <= 0.0:
@@ -71,7 +85,7 @@ func _physics_process(delta: float) -> void:
 	_handle_weapons(target)
 	_handle_bays(target)
 	if profile.dodge_burn:
-		_try_dodge()
+		_try_dodge(delta)
 
 
 func _idle() -> void:
@@ -91,14 +105,17 @@ func _pick_target() -> Ship:
 	return best
 
 
-## The AI's picture of the target trails the truth by about reaction_time seconds.
+## The AI's picture of the target trails the truth by about reaction_time seconds, and freezes
+## during an attention lapse.
 func _perceive(target: Ship, delta: float) -> void:
 	if not _has_perception:
 		_perceived_pos = target.global_position
 		_perceived_vel = target.velocity
 		_has_perception = true
 		return
-	var blend := 1.0 - exp(-delta / maxf(profile.reaction_time, 0.01))
+	if is_lapsing():
+		return
+	var blend := 1.0 - exp(-delta / maxf(reaction_time(), 0.01))
 	_perceived_pos = _perceived_pos.lerp(target.global_position, blend)
 	_perceived_vel = _perceived_vel.lerp(target.velocity, blend)
 
@@ -132,7 +149,8 @@ func _handle_weapons(target: Ship) -> void:
 		# Lead the target, then miss by this shot's error.
 		var muzzle := lead_with.muzzle_position()
 		var estimate := _estimated_position()
-		var direction := AutoAim.intercept_direction(muzzle, estimate, _perceived_vel, lead_with.projectile_speed())
+		var lead_velocity := _perceived_vel.rotated(Vector3.UP, _heading_error) * _skill_value(&"lead_fraction", 1.0)
+		var direction := AutoAim.intercept_direction(muzzle, estimate, lead_velocity, lead_with.projectile_speed())
 		direction = direction.rotated(Vector3.UP, _aim_error)
 		_ship.aim_at(muzzle + direction * maxf(muzzle.distance_to(estimate), 1.0))
 		_watch_for_shots(lead_with)
@@ -141,10 +159,35 @@ func _handle_weapons(target: Ship) -> void:
 
 
 ## Where the AI thinks the target is right now. The smoothed picture trails a steady target by
-## about velocity * reaction_time, so it projects that much forward: it tracks straight runs well
-## and is fooled for a moment by every turn or Hard Burn.
+## about velocity * reaction_time, so it projects that much forward (scaled by its skill's
+## lead_fraction): it tracks straight runs well and is fooled for a moment by every turn or Hard Burn.
 func _estimated_position() -> Vector3:
-	return _perceived_pos + _perceived_vel * profile.reaction_time
+	return _perceived_pos + _perceived_vel * reaction_time() * _skill_value(&"lead_fraction", 1.0)
+
+
+## The profile's reaction time, slowed by its skill.
+func reaction_time() -> float:
+	return profile.reaction_time * _skill_value(&"reaction_scale", 1.0)
+
+
+## The profile's aim error, widened by its skill.
+func aim_error_deg() -> float:
+	return profile.aim_error_deg * _skill_value(&"aim_error_scale", 1.0)
+
+
+## True while it has zoned out (its picture of the target is frozen).
+func is_lapsing() -> bool:
+	return _lapse_left > 0.0
+
+
+func _step_attention(delta: float) -> void:
+	if _lapse_left > 0.0:
+		_lapse_left -= delta
+		return
+	_lapse_timer -= delta
+	if _lapse_timer <= 0.0:
+		_lapse_left = _skill_value(&"lapse_duration", 0.0)
+		_lapse_timer = _next_lapse_time()
 
 
 ## Hysteresis: stop firing a weapon at VENT_AT heat (or overheated), resume at VENT_UNTIL.
@@ -174,23 +217,45 @@ func _watch_for_shots(controller: WeaponController) -> void:
 	controller.fired.connect(_reroll_aim_error)
 
 
-## Sidestep a projectile that's about to hit, if Hard Burn is ready.
-func _try_dodge() -> void:
-	if _ship.movement.burn_ready_fraction() < 1.0:
-		return
+## Sidestep a projectile that's about to hit, if Hard Burn is ready. Each shot on course is
+## noticed once: it decides then (dodge_chance) whether to dodge it, and only acts after the shot
+## has been on course for dodge_delay seconds, so fast shots can land before it reacts.
+func _try_dodge(delta: float) -> void:
+	for projectile: Object in _threats.keys():
+		if not is_instance_valid(projectile):
+			_threats.erase(projectile)
+	var burn_ready := _ship.movement.burn_ready_fraction() >= 1.0
 	for node in get_tree().get_nodes_in_group(Projectile.GROUP):
 		var projectile := node as Projectile
 		if projectile.team() == _ship.team:
 			continue
 		var away := AISteering.dodge_direction(_ship.global_position, _ship.hull.collision_radius, projectile.global_position, projectile.direction, projectile.current_speed())
-		if away != Vector3.ZERO:
+		if away == Vector3.ZERO:
+			continue
+		if not _threats.has(projectile):
+			_threats[projectile] = [0.0, rng.randf() < _skill_value(&"dodge_chance", 1.0)]
+		var threat: Array = _threats[projectile]
+		threat[0] = float(threat[0]) + delta
+		if burn_ready and threat[1] and float(threat[0]) >= _skill_value(&"dodge_delay", 0.0):
 			var yaw := _ship.global_rotation.y
 			_ship.request_hard_burn(Vector2(away.dot(SailingModel.right_of(yaw)), away.dot(SailingModel.forward_of(yaw))))
 			return
 
 
 func _reroll_aim_error() -> void:
-	_aim_error = deg_to_rad(rng.randf_range(-1.0, 1.0) * (profile.aim_error_deg if profile != null else 0.0))
+	_aim_error = deg_to_rad(rng.randf_range(-1.0, 1.0) * (aim_error_deg() if profile != null else 0.0))
+	_heading_error = deg_to_rad(rng.randf_range(-1.0, 1.0) * _skill_value(&"heading_error_deg", 0.0))
+
+
+## A field of the skill, or [param fallback] (the raw profile's behaviour) with no skill set.
+func _skill_value(property: StringName, fallback: float) -> float:
+	return float(skill.get(property)) if skill != null else fallback
+
+
+func _next_lapse_time() -> float:
+	if skill == null:
+		return INF  # No draw either, so a skill-less AI rolls exactly as before.
+	return rng.randf_range(skill.lapse_every * 0.5, skill.lapse_every * 1.5)
 
 
 func _next_flip_time() -> float:

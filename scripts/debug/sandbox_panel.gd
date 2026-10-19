@@ -59,6 +59,21 @@ func _ready() -> void:
 	box.add_child(_labelled("Enemy", _enemy_picker))
 	var enemy_row := HBoxContainer.new()
 	box.add_child(enemy_row)
+	var skill_slider := HSlider.new()
+	skill_slider.focus_mode = Control.FOCUS_NONE
+	skill_slider.min_value = 0.0
+	skill_slider.max_value = 2.0
+	skill_slider.step = 0.25
+	skill_slider.value = 1.0
+	skill_slider.custom_minimum_size.x = 160.0
+	var skill_label := Label.new()
+	skill_slider.value_changed.connect(func(value: float) -> void:
+		_sandbox.enemy_skill_level = value
+		skill_label.text = _skill_text(value))
+	skill_label.text = _skill_text(skill_slider.value)
+	var skill_row := _labelled("Enemy skill", skill_slider)
+	skill_row.add_child(skill_label)
+	box.add_child(skill_row)
 	enemy_row.add_child(_button("Spawn enemy", func() -> void: _spawn_selected_enemy()))
 	enemy_row.add_child(_button("Start gauntlet", func() -> void: _sandbox.start_gauntlet()))
 	box.add_child(HSeparator.new())
@@ -86,7 +101,7 @@ func bind(sandbox: Node) -> void:
 		_enemy_picker.add_item(enemy.display_name)
 	_items = ContentDB.items()
 	for item in _items:
-		_item_picker.add_item("%s: %s" % [item.category_name(), item.display_name])
+		_item_picker.add_item("%s: %s" % [item.category_name(), item.full_name()])
 	sync_hull()
 
 
@@ -104,6 +119,11 @@ func sync_hull() -> void:
 func _spawn_selected_enemy() -> void:
 	if _enemy_picker.selected >= 0:
 		_sandbox.spawn_enemy(_enemies[_enemy_picker.selected])
+
+
+## "1.25 (Veteran)": the level and its nearest preset.
+func _skill_text(level: float) -> String:
+	return "%.2f (%s)" % [level, ["Rookie", "Veteran", "Ace"][roundi(level)]]
 
 
 func _add_selected_item() -> void:

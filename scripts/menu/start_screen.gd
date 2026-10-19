@@ -11,11 +11,19 @@ const DEFAULT_ACT_ID := &"slice_act"
 var change_scenes: bool = true
 
 var _original_button: Button
+var _difficulty_buttons: Array[Button] = []
 
 
 func _ready() -> void:
 	_build()
 	_original_button.grab_focus.call_deferred()
+
+
+## Sets how skilled enemy pilots are in the runs started from here.
+func set_difficulty(level: AIDifficulty.Level) -> void:
+	RunState.difficulty = level
+	for i in _difficulty_buttons.size():
+		_difficulty_buttons[i].set_pressed_no_signal(i == level)
 
 
 ## Begins a fresh run of the slice act in Original mode and heads to the first duel.
@@ -69,10 +77,30 @@ func _build() -> void:
 	_original_button = _button("Original", start_original)
 	box.add_child(_original_button)
 	box.add_child(_hint("A run through the gauntlet: win duels, pick salvage."))
+	box.add_child(_difficulty_row())
+	box.add_child(_hint("Enemy pilots sharpen up as a run goes on. Hard starts where Normal ends."))
 	box.add_child(_button("Debug", start_debug))
 	box.add_child(_hint("The sandbox: spawn bots, swap hulls, tune."))
 	box.add_child(_button("Quit", quit))
 	box.add_child(_spacer(6.0))
+
+
+func _difficulty_row() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_child(_label("Enemy skill", Color(1, 1, 1, 0.6), 13))
+	var group := ButtonGroup.new()
+	for level: AIDifficulty.Level in [AIDifficulty.Level.EASY, AIDifficulty.Level.NORMAL, AIDifficulty.Level.HARD]:
+		var button := Button.new()
+		button.text = AIDifficulty.display_name(level)
+		button.toggle_mode = true
+		button.button_group = group
+		button.custom_minimum_size = Vector2(76.0, 30.0)
+		button.button_pressed = level == RunState.difficulty
+		button.pressed.connect(set_difficulty.bind(level))
+		row.add_child(button)
+		_difficulty_buttons.append(button)
+	return row
 
 
 func _spacer(height: float) -> Control:

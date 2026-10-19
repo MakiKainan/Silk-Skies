@@ -5,7 +5,9 @@ extends RefCounted
 ## reproduces the same drop (spec 5.8).
 
 ## Common 0 lines, Rare 1, Epic 2 (and Epic rolls are Rarity.EPIC_SCALE times bigger).
+## A rarity below the item's min_rarity is raised to it.
 static func roll(data: ItemData, rarity: Rarity.Type, rng: RandomNumberGenerator) -> ItemInstance:
+	rarity = maxi(rarity, data.min_rarity) as Rarity.Type
 	var rolled: Array[StatMod] = []
 	if data.roll_pool != null:
 		var templates := data.roll_pool.templates.duplicate()

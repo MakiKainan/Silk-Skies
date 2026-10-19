@@ -3,8 +3,8 @@
 [ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
 [ext_resource type="Script" path="res://scripts/data/item_spec.gd" id="2_spec"]
 [ext_resource type="Script" path="res://scripts/data/phase_data.gd" id="3_phase"]
-[ext_resource type="Resource" path="res://data/weapons/pulse_laser.tres" id="w_pulse"]
-[ext_resource type="Resource" path="res://data/weapons/autocannon.tres" id="w_auto"]
+[ext_resource type="Resource" path="res://data/weapons/burst_laser.tres" id="w_pulse"]
+[ext_resource type="Resource" path="res://data/weapons/cannon.tres" id="w_auto"]
 [ext_resource type="Resource" path="res://data/weapons/railgun.tres" id="w_rail"]
 [ext_resource type="Resource" path="res://data/weapons/missile_pod.tres" id="w_pod"]
 [ext_resource type="Resource" path="res://data/fighters/strike_bay.tres" id="f_strike"]
@@ -49,7 +49,7 @@ refill_shield = true
 script = ExtResource("1_enemy")
 id = &"enemy_warden"
 display_name = "The Warden"
-description = "A heavy guardian. At half hull it overclocks: shields restore, a pulse laser, a missile pod and a bomber bay come online, and it charges."
+description = "A heavy guardian. At half hull it overclocks: shields restore, a burst laser, a missile pod and a bomber bay come online, and it charges."
 hull = ExtResource("hull")
 loadout = Array[ExtResource("2_spec")]([SubResource("S1")])
 ai_profile = ExtResource("ai")

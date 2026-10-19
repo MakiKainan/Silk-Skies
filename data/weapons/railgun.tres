@@ -7,8 +7,9 @@
 [resource]
 script = ExtResource("1_weapon")
 id = &"railgun"
-display_name = "Railgun"
-description = "Hold to charge, then a piercing kinetic slug down the line. Fires on right mouse by default. Devastating against armor."
+display_name = "Prototype"
+weapon_label = "Railgun"
+description = "Hold to charge, release to fire a piercing kinetic slug down the line. Fires on right mouse by default. Devastating against armor."
 roll_pool = ExtResource("3_pool")
 size = 1
 targeting = 0

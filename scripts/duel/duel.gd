@@ -60,7 +60,7 @@ func _ready() -> void:
 	player.add_child(PlayerInput.new())
 	player.weapons_enabled = false
 
-	enemy_ship = EnemyFactory.spawn(_ships, enemy_data, Vector3(0.0, 0.0, -START_OFFSET), PI, RunState.make_rng())
+	enemy_ship = EnemyFactory.spawn(_ships, enemy_data, Vector3(0.0, 0.0, -START_OFFSET), PI, RunState.make_rng(), RunState.enemy_skill())
 	enemy_ship.weapons_enabled = false
 	_ai().enabled = false
 	enemy_ship.died.connect(func(_source: Node) -> void: _finish(true))
@@ -109,7 +109,7 @@ func _ready() -> void:
 	EventBus.ship_hit.connect(_on_ship_hit)
 	EventBus.phase_started.connect(_on_phase_started)
 
-	_ui.show_preview(enemy_data, RunState.duel_index, RunState.duel_count())
+	_ui.show_preview(enemy_data, RunState.duel_index, RunState.duel_count(), _ai().skill)
 	_pause_for_overlay()
 
 

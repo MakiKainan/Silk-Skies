@@ -1,7 +1,8 @@
 class_name LootGenerator
 extends RefCounted
 ## The post-duel salvage offers (spec 4.2): three items to choose from, one of them something the
-## defeated enemy was using, the rest from the whole item pool. Pure and seeded: the same
+## defeated enemy was using, the rest from the whole item pool. Each other slot rolls its rarity
+## first and only offers items allowed at it (ItemData.min_rarity). Pure and seeded: the same
 ## RNG state gives the same three offers, so a retry or a reload shows the same choice.
 
 const OFFER_COUNT := 3
@@ -25,9 +26,13 @@ static func offers(enemy: EnemyData, pool: Array[ItemData], duel_index: int, rng
 		_remove_item(remaining, spec.item)
 
 	while out.size() < OFFER_COUNT and not remaining.is_empty():
-		var data := remaining[rng.randi_range(0, remaining.size() - 1)]
+		var rarity := roll_rarity(duel_index, rng)
+		var candidates := remaining.filter(func(item: ItemData) -> bool: return item.min_rarity <= rarity)
+		if candidates.is_empty():
+			candidates = remaining  # Only rare-locked items left: the roller raises the rarity.
+		var data: ItemData = candidates[rng.randi_range(0, candidates.size() - 1)]
 		remaining.erase(data)
-		out.append(ItemRoller.roll(data, roll_rarity(duel_index, rng), rng))
+		out.append(ItemRoller.roll(data, rarity, rng))
 	return out
 
 

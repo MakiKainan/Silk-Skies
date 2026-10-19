@@ -30,7 +30,8 @@ static func build(item: ItemInstance) -> Control:
 		var glyph := UiArt.icon_rect(UiArt.damage_icon(type), 26.0, Damage.TYPE_COLORS[type])
 		if glyph != null:
 			header.add_child(glyph)
-	box.add_child(_label("%s %s%s" % [Rarity.display_name(item.rarity), data.category_name(), _subtitle(data)], Color(1, 1, 1, 0.6), 13))
+	var kind := (data as WeaponData).weapon_label if data is WeaponData and (data as WeaponData).weapon_label != "" else data.category_name()
+	box.add_child(_label("%s %s%s" % [Rarity.display_name(item.rarity), kind, _subtitle(data)], Color(1, 1, 1, 0.6), 13))
 	if data is WeaponData:
 		box.add_child(_label(_fire_line(item), Color(0.6, 0.85, 1.0), 13))
 	box.add_child(HSeparator.new())

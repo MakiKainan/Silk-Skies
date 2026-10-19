@@ -144,7 +144,7 @@ func _process(_delta: float) -> void:
 		(row.bar as Range).value = controller.ready_fraction()
 		if row.heat != null:
 			(row.heat as Range).value = controller.heat_fraction()
-		(row.label as Label).text = "%s [%s %s] %s" % [controller.weapon.display_name, MODE_NAMES[controller.weapon.targeting], WeaponData.group_key(controller.fire_group()), controller.status_text()]
+		(row.label as Label).text = "%s [%s %s] %s" % [controller.weapon.full_name(), MODE_NAMES[controller.weapon.targeting], WeaponData.group_key(controller.fire_group()), controller.status_text()]
 
 
 func _rebuild_weapons() -> void:

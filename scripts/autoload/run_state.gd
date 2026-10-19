@@ -14,6 +14,9 @@ const REWARD_SALT := 7
 const DEBUG_CARGO_SLOTS := 12
 
 var mode: Mode = Mode.DEBUG
+## How skilled enemy pilots are; with the duel's place in the act it picks each enemy's AISkill.
+## Chosen on the start screen and kept across runs.
+var difficulty: AIDifficulty.Level = AIDifficulty.Level.NORMAL
 ## Cargo cells for a new loadout. The sandbox is roomier than a real run (4).
 var cargo_capacity: int = DEBUG_CARGO_SLOTS
 
@@ -26,13 +29,13 @@ var last_result: DuelResult
 
 
 ## Makes sure there is a player hull and loadout, building the starter ones if not (the starter
-## frigate with a Pulse Laser and a Railgun). Returns true if it had to create them.
+## frigate with The Stutter (Burst Laser) and the Prototype (Railgun)). Returns true if it had to create them.
 func ensure_player() -> bool:
 	if player_hull != null and loadout != null:
 		return false
 	player_hull = ContentDB.get_hull(&"starter_frigate")
 	loadout = ShipLoadout.new(player_hull, cargo_capacity)
-	loadout.set_item(ShipLoadout.Kind.SLOT, 0, ItemInstance.make(ContentDB.get_by_id(&"pulse_laser") as ItemData))
+	loadout.set_item(ShipLoadout.Kind.SLOT, 0, ItemInstance.make(ContentDB.get_by_id(&"burst_laser") as ItemData))
 	loadout.set_item(ShipLoadout.Kind.SLOT, 1, ItemInstance.make(ContentDB.get_by_id(&"railgun") as ItemData))
 	return true
 
@@ -94,6 +97,11 @@ func advance() -> bool:
 	duel_index += 1
 	last_result = null
 	return true
+
+
+## How good a pilot the current duel's enemy is (see AIDifficulty).
+func enemy_skill() -> AISkill:
+	return AIDifficulty.skill_at(AIDifficulty.skill_level(difficulty, duel_index, duel_count()), AIDifficulty.presets())
 
 
 ## A fresh RNG for the current duel, the same every time for the same run seed and duel, so a

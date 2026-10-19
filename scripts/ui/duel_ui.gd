@@ -59,7 +59,8 @@ func show_banner(text: String, seconds: float = 2.5) -> void:
 
 # --- Preview -------------------------------------------------------------------------
 
-func show_preview(enemy: EnemyData, index: int, total: int) -> void:
+## [param skill] (optional) names how good a pilot the enemy is.
+func show_preview(enemy: EnemyData, index: int, total: int, skill: AISkill = null) -> void:
 	hide_preview()
 	_preview = _overlay()
 	var box := _panel_box(_preview, 560.0)
@@ -71,13 +72,16 @@ func show_preview(enemy: EnemyData, index: int, total: int) -> void:
 	var hull := enemy.hull
 	box.add_child(_label("Hull %d     Shield %d     Armor %s     Speed %d" % [hull.max_hull, hull.max_shield, "%.0f" % hull.armor, hull.max_speed], Color(0.9, 0.9, 0.9), 15))
 	if enemy.ai_profile != null:
-		box.add_child(_label("Style: %s" % enemy.ai_profile.display_name, Color(1.0, 0.85, 0.4), 14))
+		var style := "Style: %s" % enemy.ai_profile.display_name
+		if skill != null:
+			style += "     Pilot: %s" % skill.display_name
+		box.add_child(_label(style, Color(1.0, 0.85, 0.4), 14))
 		box.add_child(_wrapped(enemy.ai_profile.description, Color(1, 1, 1, 0.6), 13))
 	box.add_child(_label("Weapons", Color(1, 1, 1, 0.5), 12))
 	for spec in enemy.loadout:
 		if spec.item == null:
 			continue
-		var line := spec.item.display_name
+		var line := spec.item.full_name()
 		if spec.item is WeaponData:
 			line += "   (%s, %s)" % [MODE_NAMES[(spec.item as WeaponData).targeting], "large" if spec.item.slot_size() == HardpointData.Size.LARGE else "small"]
 		var row := HBoxContainer.new()
