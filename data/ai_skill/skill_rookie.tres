@@ -14,3 +14,4 @@ lapse_every = 6.0
 lapse_duration = 1.0
 dodge_chance = 0.3
 dodge_delay = 0.35
+missile_defense = 0.25

@@ -13,6 +13,8 @@ extends Node
 ## Heat at which the AI lets go of a weapon, and the heat it waits for before using it again.
 const VENT_AT := 0.85
 const VENT_UNTIL := 0.3
+## Enemy missiles nearer than this (metres) are worth shooting down.
+const MISSILE_DEFENSE_RANGE := 34.0
 ## Fighter bays launch when the target is within this multiple of the preferred range.
 const BAY_LAUNCH_RANGE := 1.2
 
@@ -38,6 +40,8 @@ var _threats: Dictionary = {}
 var _watched_weapon: WeaponController
 ## Weapons the AI is letting cool down (WeaponController -> true).
 var _venting: Dictionary = {}
+## Enemy missiles it has noticed: Projectile -> whether it will try to shoot it down.
+var _missile_calls: Dictionary = {}
 
 
 func _ready() -> void:
@@ -156,6 +160,44 @@ func _handle_weapons(target: Ship) -> void:
 		_watch_for_shots(lead_with)
 	else:
 		_ship.aim_at(target.global_position)  # Lock-on needs the cursor on the target.
+	_defend_against_missiles()
+
+
+## Point defence: a gun that can reach an incoming enemy missile swings onto it and fires, for the
+## missiles it decided (missile_defense) to deal with. Missiles it ignores keep coming.
+func _defend_against_missiles() -> void:
+	for projectile in _missile_calls.keys():
+		if not is_instance_valid(projectile):
+			_missile_calls.erase(projectile)
+	var best: Projectile
+	var best_gun: WeaponController
+	var best_distance := INF
+	for node in get_tree().get_nodes_in_group(Projectile.GROUP):
+		var missile := node as Projectile
+		if missile.team() == _ship.team or not missile.is_interceptable():
+			continue
+		var distance := _ship.global_position.distance_to(missile.global_position)
+		if distance > MISSILE_DEFENSE_RANGE or distance >= best_distance:
+			continue
+		if not _missile_calls.has(missile):
+			_missile_calls[missile] = rng.randf() < _skill_value(&"missile_defense", 0.0)
+		if not _missile_calls[missile]:
+			continue
+		for controller in _ship.weapons():
+			if controller.weapon.targeting != WeaponData.Targeting.AIMED or _is_venting(controller) or not controller.is_ready():
+				continue
+			var offset := AutoAim.flat(missile.global_position - controller.muzzle_position())
+			if offset.length() <= controller.useful_range() and controller.in_arc(offset):
+				best = missile
+				best_gun = controller
+				best_distance = distance
+				break
+	if best == null:
+		return
+	var muzzle := best_gun.muzzle_position()
+	var aim := AutoAim.intercept_direction(muzzle, best.global_position, best.direction * best.current_speed(), best_gun.projectile_speed())
+	_ship.aim_at(muzzle + aim * maxf(muzzle.distance_to(best.global_position), 1.0))
+	_ship.set_trigger(best_gun.fire_group(), true)
 
 
 ## Where the AI thinks the target is right now. The smoothed picture trails a steady target by
@@ -221,7 +263,7 @@ func _watch_for_shots(controller: WeaponController) -> void:
 ## noticed once: it decides then (dodge_chance) whether to dodge it, and only acts after the shot
 ## has been on course for dodge_delay seconds, so fast shots can land before it reacts.
 func _try_dodge(delta: float) -> void:
-	for projectile: Object in _threats.keys():
+	for projectile in _threats.keys():
 		if not is_instance_valid(projectile):
 			_threats.erase(projectile)
 	var burn_ready := _ship.movement.burn_ready_fraction() >= 1.0

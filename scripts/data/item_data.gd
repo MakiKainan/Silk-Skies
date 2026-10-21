@@ -14,11 +14,25 @@ extends Resource
 ## Passive effects while equipped. For a techmod that's its whole point; for a crew
 ## member it's the station bonus; weapons usually have none.
 @export var base_mods: Array[StatMod] = []
-## Name of the Q/E/R ability this item grants. Shown in the UI; combat support arrives later.
+## What a Q/E/R active does. Fighter bays launch through their own controller (NONE here);
+## ActiveController runs the others.
+enum ActiveKind { NONE, EMP_PULSE, EMERGENCY_REPAIR, OVERCHARGE }
+
+## Name of the Q/E/R ability this item grants.
 @export var active_name: String = ""
 ## Inventory icon (128x128 PNG). Empty = looked up as assets/icons/items/<id>.png, else the badge.
 @export var icon: Texture2D
 @export_multiline var active_description: String = ""
+@export_group("Active")
+@export var active_kind: ActiveKind = ActiveKind.NONE
+## Seconds before it can be used again.
+@export var active_cooldown: float = 20.0
+## Seconds the effect lasts (EMP disable, overcharge). Unused by a repair.
+@export var active_duration: float = 0.0
+## Strength: share of max hull restored (repair), or extra fire rate (overcharge: 0.6 = +60%).
+@export var active_power: float = 0.0
+## Metres: how far an EMP pulse reaches.
+@export var active_range: float = 0.0
 
 
 ## Which kind of hardpoint this item mounts on.

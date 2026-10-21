@@ -32,6 +32,8 @@ var hull: float = 1.0
 var velocity: Vector3 = Vector3.ZERO
 var age: float = 0.0
 var fire_cooldown_left: float = 0.0
+## Seconds this fighter is offline after an EMP: it drifts and does nothing.
+var emp_left: float = 0.0
 ## True from release until the bomber has flown clear for PULL_AWAY_SECONDS.
 var pulling_away: bool = false
 
@@ -83,6 +85,11 @@ func take_damage(amount: float) -> void:
 		_die(true)
 
 
+## An EMP hit: the fighter goes dead in the air for [param seconds].
+func disable(seconds: float) -> void:
+	emp_left = maxf(emp_left, seconds)
+
+
 func _physics_process(delta: float) -> void:
 	step(delta)
 
@@ -93,6 +100,11 @@ func step(delta: float) -> void:
 	age += delta
 	if age >= bay.fighter_lifetime or not is_instance_valid(carrier) or not carrier.is_alive():
 		_die(false)
+		return
+	if emp_left > 0.0:
+		emp_left = maxf(emp_left - delta, 0.0)
+		velocity *= 0.96
+		global_position += velocity * delta
 		return
 	fire_cooldown_left = maxf(fire_cooldown_left - delta, 0.0)
 	match bay.role_kind:

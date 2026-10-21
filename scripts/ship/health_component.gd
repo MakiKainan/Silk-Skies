@@ -102,6 +102,15 @@ func _physics_process(delta: float) -> void:
 	step(delta)
 
 
+## Restores up to [param amount] hull (never above the maximum). Returns what was restored.
+func heal_hull(amount: float) -> float:
+	if is_dead:
+		return 0.0
+	var healed := maxf(minf(amount, max_hull() - hull), 0.0)
+	hull += healed
+	return healed
+
+
 ## Advances shield regeneration by [param delta] seconds.
 func step(delta: float) -> void:
 	if is_dead or _stats == null:

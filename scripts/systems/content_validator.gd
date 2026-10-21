@@ -64,6 +64,18 @@ static func _check_hull(hull: HullData, errors: PackedStringArray) -> void:
 
 
 static func _check_item(item: ItemData, errors: PackedStringArray) -> void:
+	if item.active_kind != ItemData.ActiveKind.NONE:
+		var active_where := _where(item)
+		if item.active_name == "":
+			errors.append("%s: an active needs an active_name" % active_where)
+		if item.active_cooldown <= 0.0:
+			errors.append("%s: active_cooldown must be positive" % active_where)
+		if item.active_kind == ItemData.ActiveKind.EMP_PULSE and (item.active_duration <= 0.0 or item.active_range <= 0.0):
+			errors.append("%s: an EMP needs a positive duration and range" % active_where)
+		if item.active_kind == ItemData.ActiveKind.OVERCHARGE and (item.active_duration <= 0.0 or item.active_power <= 0.0):
+			errors.append("%s: an overcharge needs a positive duration and power" % active_where)
+		if item.active_kind == ItemData.ActiveKind.EMERGENCY_REPAIR and (item.active_power <= 0.0 or item.active_power > 1.0):
+			errors.append("%s: a repair's power is a share of hull, in (0, 1]" % active_where)
 	var where := _where(item)
 	if item.display_name.strip_edges() == "":
 		errors.append("%s: item has no display_name" % where)
@@ -184,6 +196,8 @@ static func _check_weapon(weapon: WeaponData, errors: PackedStringArray) -> void
 		errors.append("%s: lock-on weapon must default to the SECONDARY fire group" % where)
 	if weapon.range <= 0.0:
 		errors.append("%s: weapon needs a positive range" % where)
+	if weapon.falloff_start <= 0.0 or weapon.falloff_start > 1.0 or weapon.falloff_min <= 0.0 or weapon.falloff_min > 1.0:
+		errors.append("%s: falloff_start and falloff_min must be in (0, 1]" % where)
 	if weapon.heat_per_shot < 0.0:
 		errors.append("%s: heat_per_shot can't be negative" % where)
 	if weapon.heat_per_shot > 0.0 and (weapon.heat_cool_rate <= 0.0 or weapon.overheat_lockout < 0.0):

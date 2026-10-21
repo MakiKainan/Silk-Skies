@@ -27,7 +27,7 @@ func setup(p_bay: FighterBayData, p_ship: Ship, p_mount: HardpointMount, p_insta
 
 
 func is_ready() -> bool:
-	return cooldown_left <= 0.0 and ship != null and ship.is_alive() and ship.weapons_enabled
+	return cooldown_left <= 0.0 and ship != null and ship.is_alive() and ship.can_fire()
 
 
 ## 0..1, 1 = ready to launch.

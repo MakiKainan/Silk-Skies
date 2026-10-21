@@ -1,21 +1,28 @@
 class_name ActionBar
 extends CanvasLayer
-## The bottom bar of a real run: Hard Burn | weapons | fighter bays | techmods | crew, one
-## ActionCell each with its own cooldown sweep. It follows the tracked ship's loadout and
-## rebuilds when it changes. Fighter bays launch on their Q/E/R key; crew and techmod actives have
-## no runtime yet, so their cells are dimmed and take no fraction.
+## The action bar of a real run, split into two slim columns at the screen edges so it never
+## blocks the fight: Hard Burn and the weapons on the left, the Q/E/R side (fighter bays, techmods,
+## crew) on the right. One ActionCell each with its own cooldown sweep. The columns sit
+## semi-transparent and turn opaque under the mouse. It follows the tracked ship's loadout and
+## rebuilds when it changes. Every active (fighter bays, techmods, crew) fires on its Q/E/R key and
+## shows its cooldown; an item that names an active but has no runtime is dimmed.
 
 const KEYS_FOR_ACTIVES: PackedStringArray = ["Q", "E", "R"]
 const BURN_COLOR := Color(0.9, 0.8, 0.3)
-const GROUP_GAP := 18.0
-const BOTTOM_MARGIN := 14.0
+const GROUP_GAP := 14.0
+const CELL_GAP := 6.0
+const SIDE_MARGIN := 14.0
+## Column opacity while the mouse is elsewhere / over it.
+const IDLE_ALPHA := 0.7
+const HOVER_ALPHA := 1.0
 const INERT_NOTE := "Active not online yet"
 
 ## Every cell, in bar order (Hard Burn first). Rebuilt with the loadout.
 var cells: Array[ActionCell] = []
 
 var _ship: Ship
-var _row: HBoxContainer
+var _left: VBoxContainer
+var _right: VBoxContainer
 
 
 func _ready() -> void:
@@ -24,14 +31,27 @@ func _ready() -> void:
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
-	_row = HBoxContainer.new()
-	_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_row.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	_row.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_row.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	_row.offset_bottom = -BOTTOM_MARGIN
-	_row.add_theme_constant_override(&"separation", 8)
-	root.add_child(_row)
+	_left = _column(root, Control.PRESET_CENTER_LEFT, SIDE_MARGIN)
+	_right = _column(root, Control.PRESET_CENTER_RIGHT, -SIDE_MARGIN)
+
+
+func _column(root: Control, preset: Control.LayoutPreset, margin: float) -> VBoxContainer:
+	var column := VBoxContainer.new()
+	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.set_anchors_preset(preset)
+	column.grow_horizontal = Control.GROW_DIRECTION_END if margin > 0.0 else Control.GROW_DIRECTION_BEGIN
+	column.grow_vertical = Control.GROW_DIRECTION_BOTH
+	column.offset_left = margin
+	column.offset_right = margin
+	column.add_theme_constant_override(&"separation", int(CELL_GAP))
+	column.modulate.a = IDLE_ALPHA
+	root.add_child(column)
+	return column
+
+
+## The cells' column, so a test (or the hover fade) can find it.
+func column_of(cell: ActionCell) -> VBoxContainer:
+	return cell.get_parent() as VBoxContainer
 
 
 func track(ship: Ship) -> void:
@@ -46,9 +66,10 @@ func _queue_rebuild() -> void:
 
 
 func _rebuild() -> void:
-	for child in _row.get_children():
-		_row.remove_child(child)
-		child.queue_free()
+	for column in [_left, _right]:
+		for child in column.get_children():
+			column.remove_child(child)
+			child.queue_free()
 	cells.clear()
 	if _ship == null or not is_instance_valid(_ship) or _ship.loadout == null:
 		return
@@ -65,27 +86,32 @@ func _rebuild() -> void:
 		if data is FighterBayData:
 			bays.append(_bay_cell(item))
 		elif data is TechmodData:
-			techmods.append(_item_cell(item))
+			techmods.append(_item_cell_for(item))
 		elif data is CrewData:
-			crew.append(_item_cell(item))
+			crew.append(_item_cell_for(item))
 
 	var groups: Array[Array] = [burn, weapon_cells, bays, techmods, crew]
 	_assign_active_keys(groups)
-	for group in groups:
-		_add_group(group)
+	_add_group(_left, burn)
+	_add_group(_left, weapon_cells)
+	_add_group(_right, bays)
+	_add_group(_right, techmods)
+	_add_group(_right, crew)
 
 
-func _add_group(group: Array) -> void:
+func _add_group(column: VBoxContainer, group: Array) -> void:
 	if group.is_empty():
 		return
-	if not cells.is_empty():
+	if column.get_child_count() > 0:
 		var gap := Control.new()
-		gap.custom_minimum_size.x = GROUP_GAP - 8.0  # The row's own separation adds the rest.
+		gap.custom_minimum_size.y = GROUP_GAP - CELL_GAP  # The column's own separation adds the rest.
 		gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_row.add_child(gap)
+		column.add_child(gap)
 	for cell: ActionCell in group:
-		_row.add_child(cell)
+		column.add_child(cell)
 		cells.append(cell)
+		cell.mouse_entered.connect(func() -> void: column.modulate.a = HOVER_ALPHA)
+		cell.mouse_exited.connect(func() -> void: column.modulate.a = IDLE_ALPHA)
 
 
 func _burn_cell() -> ActionCell:
@@ -125,6 +151,24 @@ func _bay_cell(item: ItemInstance) -> ActionCell:
 			controller = bay
 	if controller == null:
 		return cell
+	cell.dimmed = false
+	cell.note = ""
+	cell.fraction = func() -> float: return controller.ready_fraction() if _alive(controller) else 1.0
+	cell.status = func() -> String: return controller.status_text() if _alive(controller) else "ready"
+	cell.seconds = func() -> float: return controller.cooldown_left if _alive(controller) else 0.0
+	return cell
+
+
+## A techmod or crew cell: live when an ActiveController runs it, else dimmed if it names an active.
+func _item_cell_for(item: ItemInstance) -> ActionCell:
+	for controller in _ship.active_controllers():
+		if controller.instance == item:
+			return _active_cell(item, controller)
+	return _item_cell(item)
+
+
+func _active_cell(item: ItemInstance, controller: ActiveController) -> ActionCell:
+	var cell := _item_cell(item)
 	cell.dimmed = false
 	cell.note = ""
 	cell.fraction = func() -> float: return controller.ready_fraction() if _alive(controller) else 1.0

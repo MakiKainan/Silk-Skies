@@ -31,8 +31,15 @@ enum Telegraph { NONE, CHARGE_BEAM, TRACER, CONE, LOCK }
 @export var lock_time: float = 0.8
 ## How close (metres) the cursor must be to an enemy to start locking it.
 @export var lock_pick_radius: float = 6.0
-## Lock-on target selection distance; the reach the AI uses before pulling a trigger.
+## Max range in metres: straight shots fly exactly this far, the firing cone is drawn this long,
+## and lock-on picks targets within it. The AI shoots within useful range (see falloff).
 @export var range: float = 40.0
+
+@export_group("Falloff")
+## Fraction of range where damage starts to drop off. 1.0 = full damage all the way out.
+@export_range(0.05, 1.0, 0.01) var falloff_start: float = 1.0
+## Damage multiplier at max range.
+@export_range(0.05, 1.0, 0.01) var falloff_min: float = 1.0
 
 @export_group("Heat")
 ## Heat added per firing (1.0 = overheated). 0 = this weapon never heats up.
@@ -67,6 +74,21 @@ func full_name() -> String:
 ## The button this weapon uses when the item doesn't override it.
 func default_group() -> FireGroup:
 	return FireGroup.SECONDARY if targeting == Targeting.LOCK_ON else default_fire_group
+
+
+func has_falloff() -> bool:
+	return falloff_start < 1.0 and falloff_min < 1.0
+
+
+## Damage multiplier for a hit [param distance] metres from the muzzle: 1.0 up to
+## [param start] metres, then an ease-out curve down to [param min_mult] at [param max_range],
+## so damage falls fastest right after the drop-off starts.
+static func falloff_multiplier(distance: float, max_range: float, start: float, min_mult: float) -> float:
+	if distance <= start or max_range <= start:
+		return 1.0
+	var t := clampf((distance - start) / (max_range - start), 0.0, 1.0)
+	var eased := 1.0 - (1.0 - t) * (1.0 - t)
+	return lerpf(1.0, min_mult, eased)
 
 
 static func group_key(group: FireGroup) -> String:

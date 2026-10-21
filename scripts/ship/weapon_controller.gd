@@ -12,6 +12,8 @@ const HEAT_COOL_DELAY := 0.3
 ## Enemy charged weapons stop tracking for this long at the end of a charge, so the player
 ## gets a fair moment to sidestep the telegraphed line.
 const AIM_COMMIT_SECONDS := 0.2
+## The AI only shoots where a drop-off weapon still does at least this share of its damage.
+const USEFUL_DAMAGE := 0.5
 
 var weapon: WeaponData
 ## The specific drop this weapon is (rarity, rolled stats, fire group); null for a bare WeaponData.
@@ -77,11 +79,34 @@ func refresh_stats(global_mods: Array[StatMod]) -> void:
 
 
 func cooldown_seconds() -> float:
-	return 1.0 / maxf(float(stats[Stats.FIRE_RATE]), 0.001)
+	var boost := ship.fire_rate_boost if ship != null else 1.0  # The Gunner's Overcharge.
+	return 1.0 / maxf(float(stats[Stats.FIRE_RATE]) * boost, 0.001)
 
 
 func effective_range() -> float:
 	return float(stats[Stats.RANGE])
+
+
+## Metres from the muzzle where damage starts to drop off (= range when it never does).
+func falloff_start_distance() -> float:
+	return effective_range() * weapon.falloff_start
+
+
+## Damage multiplier for a hit [param distance] metres from the muzzle.
+func damage_at(distance: float) -> float:
+	return WeaponData.falloff_multiplier(distance, effective_range(), falloff_start_distance(), weapon.falloff_min)
+
+
+## How far this weapon still does at least half damage: the range the AI shoots within.
+func useful_range() -> float:
+	var reach := effective_range()
+	if not weapon.has_falloff() or weapon.falloff_min >= USEFUL_DAMAGE:
+		return reach
+	# Invert the ease-out curve of WeaponData.falloff_multiplier at USEFUL_DAMAGE.
+	var eased := (1.0 - USEFUL_DAMAGE) / (1.0 - weapon.falloff_min)
+	var t := 1.0 - sqrt(1.0 - eased)
+	var start := falloff_start_distance()
+	return start + t * (reach - start)
 
 
 func projectile_speed() -> float:
@@ -104,7 +129,7 @@ func fire_group() -> WeaponData.FireGroup:
 
 
 func is_trigger_held() -> bool:
-	return ship != null and ship.is_trigger_held(fire_group()) and ship.weapons_enabled
+	return ship != null and ship.is_trigger_held(fire_group()) and ship.can_fire()
 
 
 ## 0..1: how close the weapon is to being able to act (overheat, cooldown, charge or lock).
@@ -158,22 +183,30 @@ func _default_direction() -> Vector3:
 	return Arc.direction_at(ship_yaw(), hardpoint.arc_center_deg)
 
 
-## Lock-on: is [param candidate] a living enemy within range and inside the arc?
+## Lock-on: is [param candidate] a living enemy within max range and inside the arc?
 func can_target(candidate: Ship) -> bool:
-	return weapon_in_reach(candidate)
+	return _within(candidate, effective_range())
 
 
-## Could this weapon plausibly shoot [param candidate] right now: in range (scaled by
-## [param range_fraction]) and inside the arc? Used by AI to decide when to pull a trigger.
+## Could this weapon usefully shoot [param candidate] right now: within useful range (scaled by
+## [param range_fraction]) and inside the arc? Used by AI to decide when to pull a trigger, so it
+## doesn't plink from where a drop-off weapon barely scratches.
 func weapon_in_reach(candidate: Ship, range_fraction: float = 1.0) -> bool:
+	return _within(candidate, useful_range() * range_fraction)
+
+
+func _within(candidate: Ship, reach: float) -> bool:
 	if candidate == null or not is_instance_valid(candidate) or not candidate.is_alive() or candidate.team == ship.team:
 		return false
 	var offset := _flat(candidate.global_position - muzzle_position())
-	return offset.length() <= effective_range() * range_fraction and in_arc(offset)
+	return offset.length() <= reach and in_arc(offset)
 
 
 ## The enemy closest to the aim point, if it's within the lock pick radius and targetable.
 func pick_lock_candidate() -> Ship:
+	var locked := ship.locked()  # A Tab lock stands in for hovering the cursor over the ship.
+	if locked != null and can_target(locked):
+		return locked
 	var best: Ship
 	var best_distance := INF
 	for candidate in ship.enemies():
@@ -229,8 +262,8 @@ func step(delta: float) -> void:
 			_step_lock(delta)
 
 
-## Player weapons (Ship.flash_cones): a fresh press flashes the firing cone; holding the button
-## with the cursor outside the cone keeps it flashing red.
+## Player weapons (Ship.flash_cones): the firing cone only shows while the button is held with the
+## cursor outside it, as a subtle red wedge. Firing inside the cone shows nothing.
 func _update_cone_flash() -> void:
 	var held := is_trigger_held()
 	if ship != null and ship.flash_cones and mount != null and ship.is_alive():
@@ -238,8 +271,6 @@ func _update_cone_flash() -> void:
 		var outside := to_aim.length_squared() > 0.01 and not in_arc(to_aim)
 		if held and outside:
 			mount.flash_cone(true)
-		elif held and not _flash_was_held:
-			mount.flash_cone(false)
 	_flash_was_held = held
 
 
@@ -281,7 +312,7 @@ func _step_aimed(delta: float) -> void:
 			_fire(direction, null)
 			return
 		aim_committed = commits_aim() and charge >= weapon.charge_time - AIM_COMMIT_SECONDS
-	elif ship.release_to_fire and was_held and not held and ship.weapons_enabled \
+	elif ship.release_to_fire and was_held and not held and ship.can_fire() \
 			and inside and charge >= weapon.charge_time and is_ready():
 		charge = 0.0
 		aim_committed = false
@@ -348,11 +379,16 @@ func _spawn_shot(direction: Vector3, target: Ship) -> void:
 	var angle := deg_to_rad(rng.randf_range(-data.spread_deg, data.spread_deg))
 	var shot_direction := direction.rotated(Vector3.UP, angle)
 	var origin := muzzle_position() + shot_direction * 1.0
-	# A longer-ranged weapon's shots live proportionally longer so they actually reach.
-	var lifetime := data.lifetime * effective_range() / maxf(weapon.range, 0.001)
+	# Straight shots die exactly at max range (measured from the muzzle, the spawn point is 1 m
+	# out); homing shots curve, so they keep their own lifetime, stretched by range rolls.
+	var lifetime := (effective_range() - 1.0) / maxf(projectile_speed(), 0.001)
+	if data.homing_deg_per_sec > 0.0:
+		lifetime = data.lifetime * effective_range() / maxf(weapon.range, 0.001)
 	var parent := Projectile.default_parent(self)
 	Sfx.play_3d(parent, ArtLookup.fire_sound(weapon), origin)
-	Projectile.spawn(parent, data, ship, origin, shot_direction, target, shot_damage(), projectile_speed(), lifetime)
+	var shot := Projectile.spawn(parent, data, ship, origin, shot_direction, target, shot_damage(), projectile_speed(), lifetime)
+	if weapon.has_falloff():
+		shot.set_falloff(muzzle_position(), falloff_start_distance(), effective_range(), weapon.falloff_min)
 
 
 func _cancel() -> void:

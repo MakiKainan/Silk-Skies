@@ -6,6 +6,8 @@ extends PanelContainer
 ## button (fire group). The rules live in ShipLoadout.
 
 const EMPTY_FILL := Color(0.09, 0.1, 0.14)
+const COMPACT_SIZE := Vector2(62.0, 62.0)
+const COMPACT_ICON := Vector2(32.0, 32.0)
 
 var loadout: ShipLoadout
 var kind: ShipLoadout.Kind = ShipLoadout.Kind.CARGO
@@ -14,6 +16,8 @@ var index: int = 0
 var is_trash: bool = false
 var empty_tooltip: String = ""
 var empty_color: Color = Color(0.4, 0.4, 0.45)
+## Smaller cell for the hangar's on-ship hotspots. Set before setup().
+var compact: bool = false
 
 var _icon: TextureRect
 var _badge: Label
@@ -26,13 +30,13 @@ func setup(p_loadout: ShipLoadout, p_kind: ShipLoadout.Kind, p_index: int, p_emp
 	index = p_index
 	empty_color = p_empty_color
 	empty_tooltip = p_empty_tooltip
-	custom_minimum_size = ItemVisuals.SLOT_SIZE
+	custom_minimum_size = COMPACT_SIZE if compact else ItemVisuals.SLOT_SIZE
 	var box := VBoxContainer.new()
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(box)
 	_icon = TextureRect.new()
-	_icon.custom_minimum_size = ItemVisuals.ICON_SIZE
+	_icon.custom_minimum_size = COMPACT_ICON if compact else ItemVisuals.ICON_SIZE
 	_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -40,7 +44,7 @@ func setup(p_loadout: ShipLoadout, p_kind: ShipLoadout.Kind, p_index: int, p_emp
 	box.add_child(_icon)
 	_badge = Label.new()
 	_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_badge.add_theme_font_size_override(&"font_size", 24)
+	_badge.add_theme_font_size_override(&"font_size", 18 if compact else 24)
 	_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(_badge)
 	_tag = Label.new()
@@ -87,6 +91,8 @@ func refresh() -> void:
 	_tag.text = Rarity.display_name(current.rarity)
 	if data is WeaponData:
 		_tag.text += "  " + WeaponData.group_key(current.fire_group_of())
+	if compact:  # No room for the rarity word; the frame colour says it.
+		_tag.text = WeaponData.group_key(current.fire_group_of()) if data is WeaponData else ""
 	_tag.modulate = Rarity.color(current.rarity)
 	var category := ItemVisuals.category_color(data.slot_type())
 	add_theme_stylebox_override(&"panel", ItemVisuals.slot_style(Rarity.color(current.rarity), category.darkened(0.6)))

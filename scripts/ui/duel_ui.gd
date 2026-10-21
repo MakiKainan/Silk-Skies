@@ -229,9 +229,9 @@ func _build_enemy_bars(boss: bool) -> void:
 			bar.queue_free()
 	var red := Color(0.9, 0.25, 0.25)
 	var blue := Color(0.3, 0.65, 1.0)
-	if boss:
-		_enemy_hull = UiArt.make_bar(red, Vector2(440.0, 108.0), true)
-		_enemy_shield = UiArt.make_bar(blue, Vector2(380.0, 16.0))
+	if boss:  # 70% of the full frame art size; at 100% it took over the top of the screen.
+		_enemy_hull = UiArt.make_bar(red, Vector2(308.0, 76.0), true)
+		_enemy_shield = UiArt.make_bar(blue, Vector2(266.0, 11.0))
 	else:
 		_enemy_hull = UiArt.make_bar(red, Vector2(420.0, 20.0))
 		_enemy_shield = UiArt.make_bar(blue, Vector2(420.0, 20.0))

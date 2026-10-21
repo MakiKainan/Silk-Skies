@@ -8,8 +8,12 @@
 script = ExtResource("1_item")
 id = &"emp_emitter"
 display_name = "EMP Emitter"
-description = "Grants an active that briefly disables enemy auto-weapons."
+description = "Grants an active that knocks out enemy weapons and fighters in range."
 roll_pool = ExtResource("3_pool")
 base_mods = Array[ExtResource("2_mod")]([])
 active_name = "EMP Pulse"
-active_description = "Briefly disables all enemy auto-weapons in range. (Not yet active in combat.)"
+active_description = "Knocks out every enemy weapon, fighter bay and fighter within 32 m for 2.5 s. 20 s cooldown. The Engineer makes it stronger."
+active_kind = 1
+active_cooldown = 20.0
+active_duration = 2.5
+active_range = 32.0

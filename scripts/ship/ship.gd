@@ -25,8 +25,14 @@ var cargo_capacity: int = ShipLoadout.RUN_CARGO_SLOTS
 var team: StringName = TEAM_PLAYER
 ## Where this ship is currently aiming, on the Y = 0 plane.
 var aim_point: Vector3 = Vector3.ZERO
-## Sandbox/EMP hook: when false no weapon will fire.
+## Sandbox switch: when false no weapon will fire. (An EMP hit is separate: see disable_weapons.)
 var weapons_enabled: bool = true
+## The enemy the player has locked (Tab). Read it through locked(), which drops a dead or freed one.
+var lock_target: Ship
+## Seconds the ship's weapons and bays stay offline after an EMP.
+var emp_left: float = 0.0
+## Overcharge: multiplies every turret's fire rate.
+var fire_rate_boost: float = 1.0
 ## Human control: a charged weapon stays primed at full charge while its trigger is held and
 ## fires when the trigger is released. Off, a charged weapon fires the moment it is full
 ## (enemies and bots; the enemy aim-commit telegraph depends on that known moment).
@@ -46,6 +52,8 @@ var show_arcs: bool = false:
 var mounts: Array[HardpointMount] = []
 
 var _extra_mods: Array[StatMod] = []
+var _actives: Array[ActiveController] = []
+var _emp_label: Label3D
 var _triggers := {
 	WeaponData.FireGroup.PRIMARY: false,
 	WeaponData.FireGroup.SECONDARY: false,
@@ -197,6 +205,53 @@ func bays() -> Array[FighterBayController]:
 	return out
 
 
+## The locked enemy, or null if there is none (a dead or freed target clears the lock).
+func locked() -> Ship:
+	if is_instance_valid(lock_target) and lock_target.is_alive():
+		return lock_target
+	lock_target = null
+	return null
+
+
+## True when weapons and bays may act: not switched off, not hit by an EMP.
+func can_fire() -> bool:
+	return weapons_enabled and emp_left <= 0.0
+
+
+## An EMP hit: weapons and bays go offline for [param seconds] (a longer hit wins over a shorter).
+func disable_weapons(seconds: float) -> void:
+	emp_left = maxf(emp_left, seconds)
+	if _emp_label == null:
+		_emp_label = Label3D.new()
+		_emp_label.text = "DISABLED"
+		_emp_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		_emp_label.modulate = Color(0.55, 0.7, 1.0)
+		_emp_label.outline_size = 8
+		_emp_label.pixel_size = 0.02
+		_emp_label.no_depth_test = true
+		_emp_label.position = Vector3(0.0, 2.0, 0.0)
+		add_child(_emp_label)
+	_emp_label.visible = true
+	if is_inside_tree():
+		Vfx.ring(get_parent(), global_position, hull.collision_radius * 2.4, Color(0.45, 0.6, 1.0), 0.4)
+
+
+func set_fire_rate_boost(multiplier: float) -> void:
+	fire_rate_boost = multiplier
+
+
+## Every equipped active that runs through an ActiveController, in hardpoint order.
+func active_controllers() -> Array[ActiveController]:
+	return _actives
+
+
+func _physics_process(delta: float) -> void:
+	if emp_left > 0.0:
+		emp_left = maxf(emp_left - delta, 0.0)
+		if emp_left <= 0.0 and _emp_label != null:
+			_emp_label.visible = false
+
+
 ## Equipped items with an active, in action-key order (Q, E, R): fighter bays, then techmods,
 ## then crew, each in hardpoint order. The ActionBar labels its cells from this same list.
 func active_items() -> Array[ItemInstance]:
@@ -215,8 +270,7 @@ func active_items() -> Array[ItemInstance]:
 	return bay_items + techmods + crew
 
 
-## Uses the active on key [param index] (0 = Q, 1 = E, 2 = R). Only fighter bays have a runtime
-## so far; crew and techmod actives do nothing yet. Returns true if something happened.
+## Uses the active on key [param index] (0 = Q, 1 = E, 2 = R). Returns true if something happened.
 func activate(index: int) -> bool:
 	var actives := active_items()
 	if index < 0 or index >= actives.size() or not is_alive():
@@ -224,6 +278,9 @@ func activate(index: int) -> bool:
 	for bay in bays():
 		if bay.instance == actives[index]:
 			return bay.launch()
+	for controller in _actives:
+		if controller.instance == actives[index]:
+			return controller.activate()
 	return false
 
 
@@ -260,11 +317,39 @@ func _apply_loadout() -> void:
 				mount.equip_bay(item.data() as FighterBayData, self, item)
 		elif mount.bay_controller != null:
 			mount.equip_bay(null, self)
+	_sync_actives()
 	stats.set_mods(_global_mods())
 	var global := LoadoutStats.global_mods(loadout.equipped())
 	for controller in weapons():
 		controller.refresh_stats(global)
 	loadout_changed.emit()
+
+
+## One ActiveController per equipped item that has one; kept while the same item stays equipped.
+func _sync_actives() -> void:
+	var equipped := loadout.equipped()
+	var kept: Array[ActiveController] = []
+	for controller in _actives:
+		if equipped.has(controller.instance):
+			kept.append(controller)
+		else:
+			remove_child(controller)
+			controller.queue_free()
+	_actives = kept
+	for item in equipped:
+		var data := item.data()
+		if data == null or data.active_kind == ItemData.ActiveKind.NONE:
+			continue
+		var present := false
+		for existing in _actives:
+			present = present or existing.instance == item
+		if present:
+			continue
+		var controller := ActiveController.new()
+		controller.name = "Active_%s" % data.id
+		add_child(controller)
+		controller.setup(data, self, item)
+		_actives.append(controller)
 
 
 # --- Combat state --------------------------------------------------------------------

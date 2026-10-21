@@ -7,13 +7,13 @@ extends PanelContainer
 ## [member fraction] returns 0..1 (1 = ready). Leave it invalid for an action that has no runtime
 ## yet; set [member dimmed] to grey the cell out in that case.
 
-const CELL_SIZE := 64.0
+const CELL_SIZE := 48.0
 const SWEEP_COLOR := Color(0.0, 0.0, 0.05, 0.62)
 const RING_COLOR := Color(1.0, 0.85, 0.3)
 const DIMMED := Color(0.62, 0.62, 0.68, 0.8)
 const HEAT_COOL_COLOR := Color(1.0, 0.65, 0.2)
 const HEAT_HOT_COLOR := Color(1.0, 0.15, 0.05)
-const HEAT_STRIP := 5.0
+const HEAT_STRIP := 4.0
 
 ## Icon art; without it the [member badge] letters stand in.
 var icon: Texture2D
@@ -55,14 +55,14 @@ func _ready() -> void:
 	tooltip_text = title if title != "" else (item.display_name() if item != null else "Action")
 
 	if icon != null:
-		add_child(UiArt.icon_rect(icon, CELL_SIZE - 12.0))
+		add_child(UiArt.icon_rect(icon, CELL_SIZE - 10.0))
 	else:
-		var letters := _text(badge, 20, Color.WHITE)
+		var letters := _text(badge, 16, Color.WHITE)
 		letters.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		letters.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		add_child(letters)
 	if corner_icon != null:
-		var corner := UiArt.icon_rect(corner_icon, 16.0, corner_tint)
+		var corner := UiArt.icon_rect(corner_icon, 13.0, corner_tint)
 		corner.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 		corner.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		add_child(corner)
@@ -73,13 +73,13 @@ func _ready() -> void:
 	_sweep.draw.connect(_draw_sweep)
 	add_child(_sweep)
 
-	_seconds_label = _text("", 16, Color.WHITE)
+	_seconds_label = _text("", 14, Color.WHITE)
 	_seconds_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_seconds_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	add_child(_seconds_label)
 
 	if key_text != "":
-		var key := _text(key_text, 11, Color(1.0, 0.92, 0.6))
+		var key := _text(key_text, 10, Color(1.0, 0.92, 0.6))
 		key.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		key.size_flags_vertical = Control.SIZE_SHRINK_END
 		add_child(key)

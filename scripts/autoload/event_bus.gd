@@ -9,5 +9,6 @@ signal weapon_fired(ship: Node, weapon: WeaponData)
 signal phase_started(ship: Node, phase: PhaseData)
 ## A fighter bay launched its fighters.
 signal fighters_launched(ship: Node, bay: FighterBayData)
+signal active_used(ship: Node, item: ItemData)
 ## A ship's shield just went from up to 0. Its hull is exposed for a moment (HealthComponent).
 signal shield_broken(ship: Node)

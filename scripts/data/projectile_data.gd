@@ -7,7 +7,8 @@ extends Resource
 @export var damage_type: Damage.Type = Damage.Type.KINETIC
 ## Metres per second.
 @export var speed: float = 50.0
-## Seconds before it expires. speed * lifetime is its range.
+## Seconds before it expires. Only homing shots (and fighters) use it: a weapon's straight shots
+## live exactly long enough to reach the weapon's range.
 @export var lifetime: float = 1.0
 ## Random deviation, in degrees either side of the aim direction.
 @export_range(0.0, 45.0, 0.1) var spread_deg: float = 0.0

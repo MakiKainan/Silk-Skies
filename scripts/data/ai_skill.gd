@@ -29,6 +29,8 @@ extends Resource
 @export_range(0.0, 1.0, 0.05) var dodge_chance: float = 1.0
 ## Seconds a shot must be on course before it reacts; fast shots can land first.
 @export var dodge_delay: float = 0.0
+## Chance to shoot down each enemy missile that comes near, when a gun can reach it.
+@export_range(0.0, 1.0, 0.05) var missile_defense: float = 0.0
 
 
 ## A new skill part-way between [param a] (t = 0) and [param b] (t = 1).
@@ -37,6 +39,6 @@ static func blend(a: AISkill, b: AISkill, t: float) -> AISkill:
 	out.id = a.id if t < 0.5 else b.id
 	out.display_name = a.display_name if t < 0.5 else b.display_name
 	for property: StringName in [&"reaction_scale", &"aim_error_scale", &"lead_fraction", &"heading_error_deg",
-			&"lapse_every", &"lapse_duration", &"dodge_chance", &"dodge_delay"]:
+			&"lapse_every", &"lapse_duration", &"dodge_chance", &"dodge_delay", &"missile_defense"]:
 		out.set(property, lerpf(float(a.get(property)), float(b.get(property)), t))
 	return out

@@ -72,6 +72,11 @@ static func _stat_lines(item: ItemInstance) -> PackedStringArray:
 		lines.append("Fire rate %s" % StatInfo.format_value(Stats.FIRE_RATE, stats[Stats.FIRE_RATE]))
 		lines.append("DPS %.1f" % WeaponStats.dps(weapon, stats))
 		lines.append("Range %s" % StatInfo.format_value(Stats.RANGE, stats[Stats.RANGE]))
+		if weapon.has_falloff():
+			var reach := float(stats[Stats.RANGE])
+			lines.append("Full damage to %.0f m, %d%% at %.0f m" % [reach * weapon.falloff_start, roundi(weapon.falloff_min * 100.0), reach])
+		else:
+			lines.append("No damage drop-off")
 		if weapon.shots_per_fire > 1:
 			lines.append("Salvo of %d" % weapon.shots_per_fire)
 		if weapon.projectile.pierce > 0:
