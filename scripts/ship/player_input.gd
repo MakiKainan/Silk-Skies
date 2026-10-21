@@ -90,7 +90,7 @@ func _physics_process(delta: float) -> void:
 		turn = fire_steer(steer, _ship.global_rotation.y, _cones(held), flat_aim)
 	_ship.set_turn(turn)
 	if Input.is_action_just_pressed(&"hard_burn"):
-		_ship.request_hard_burn(Vector2(steer, drive))
+		_ship.request_hard_burn(mouse_burn_local(_ship.global_rotation.y, Vector2(steer, drive), flat_aim))
 
 	for index in ACTIVE_ACTIONS.size():
 		if Input.is_action_just_pressed(ACTIVE_ACTIONS[index]):
@@ -107,6 +107,20 @@ static func fire_steer(key_steer: float, yaw: float, cones: Array[Vector2], dire
 		return key_steer
 	var assist := assist_yaw(yaw, cones, direction)
 	return 0.0 if is_nan(assist) else steer_for(yaw_error(yaw, assist))
+
+
+## Hard Burn direction as ship-local (x = starboard, y = bow) for keys read against the mouse:
+## [param keys] is (D - A, W - S) and [param aim] the flat vector from the ship to the cursor, so
+## W bursts toward the cursor, S away from it, A/D to either side of that line, whichever way
+## the bow points. No keys, or the cursor on top of the ship, keeps the bow (a zero vector).
+static func mouse_burn_local(yaw: float, keys: Vector2, aim: Vector3) -> Vector2:
+	var toward := Vector3(aim.x, 0.0, aim.z)
+	if keys.length_squared() < 0.0001 or toward.length_squared() < 0.0001:
+		return Vector2.ZERO
+	toward = toward.normalized()
+	var beside := Vector3(-toward.z, 0.0, toward.x)  # Starboard of the line to the cursor.
+	var world := beside * keys.x + toward * keys.y
+	return Vector2(world.dot(SailingModel.right_of(yaw)), world.dot(SailingModel.forward_of(yaw)))
 
 
 ## The ship yaw that points the bow along [param direction] (SailingModel.forward_of's inverse).

@@ -122,7 +122,7 @@ func _burn_cell() -> ActionCell:
 	cell.frame_color = BURN_COLOR
 	cell.key_text = "Shift"
 	cell.title = "Hard Burn"
-	cell.description = "A short burst of speed in the direction you are holding. Cooldown follows your ship's burn stats."
+	cell.description = "A short burst of speed relative to your mouse: W toward the cursor, S away, A/D to either side, whichever way the ship faces. Cooldown follows your ship's burn stats."
 	cell.fraction = movement.burn_ready_fraction
 	cell.status = func() -> String: return "ready" if movement.burn_ready_fraction() >= 1.0 else "cooling"
 	cell.seconds = func() -> float: return movement.model.burn_cooldown_left

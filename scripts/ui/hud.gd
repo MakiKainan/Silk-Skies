@@ -52,7 +52,7 @@ func _ready() -> void:
 	_box.add_child(_weapon_box)
 
 	_help = _make_label()
-	_help.text = "\nW/S thrust   A/D steer   Shift = Hard Burn (hold W/A/S/D to aim it)\nmouse aims   LMB / RMB fire their weapon groups   RMB on enemy = missile lock, release = fire\nQ/E/R fighters   I refit (right-click a weapon: switch button)   1/2/3 hull   B bot   N dummy   X clear\nR revive (when dead)   F1 tuning   F2 sandbox   [ ] time scale   \\ reset time   wheel zoom"
+	_help.text = "\nW/S thrust   A/D steer   Shift = Hard Burn (hold W/A/S/D to dash toward or away from the mouse)\nmouse aims   LMB / RMB fire their weapon groups   RMB on enemy = missile lock, release = fire\nQ/E/R fighters   I refit (right-click a weapon: switch button)   1/2/3 hull   B bot   N dummy   X clear\nR revive (when dead)   F1 tuning   F2 sandbox   [ ] time scale   \\ reset time   wheel zoom"
 	_help.modulate = Color(1.0, 1.0, 1.0, 0.65)
 	_help.visible = not compact
 	_box.add_child(_help)

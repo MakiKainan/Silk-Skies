@@ -85,7 +85,7 @@ func _ready() -> void:
 		add_child(_action_bar)
 		_action_bar.track(player)
 	else:
-		_hud.set_help("W/S thrust   A/D steer   Shift = Hard Burn (hold W/A/S/D to aim it)\nmouse aims   Tab / middle mouse = lock on   LMB / RMB fire their weapon groups   RMB on enemy = missile lock, release = fire\nQ / E / R launch fighters   I refit (right-click a weapon to switch its button)")
+		_hud.set_help("W/S thrust   A/D steer   Shift = Hard Burn (hold W/A/S/D to dash toward or away from the mouse)\nmouse aims   Tab / middle mouse = lock on   LMB / RMB fire their weapon groups   RMB on enemy = missile lock, release = fire\nQ / E / R launch fighters   I refit (right-click a weapon to switch its button)")
 
 	_inventory = InventoryScreen.new()
 	add_child(_inventory)
